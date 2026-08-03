@@ -11,7 +11,7 @@
 // A lógica de debounce vive em debounce.cpp, sem dependência de Arduino, e é
 // coberta por testes de host (`make test` na raiz do repositório).
 //
-// Preencher receptorMAC com o endereço real do Receptor (ele imprime o próprio
+// Preencher MAC_RECEPTOR com o endereço real do Receptor (ele imprime o próprio
 // MAC no boot).
 
 #include <Arduino.h>
@@ -22,12 +22,13 @@
 
 #include <atomic>
 
+#include "chaves.h"
+#include "config_rede.h"
 #include "debounce.h"
 #include "emissor_logic.h"
 #include "identidade.h"
 #include "protocolo.h"
-
-uint8_t receptorMAC[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};  // TODO: ajustar
+#include "seguranca.h"
 
 #define BOTAO0_PIN 4
 #define BOTAO1_PIN 5
@@ -100,7 +101,7 @@ static void tarefaEnvio(void *arg) {
 
     for (int i = 0; i < RAJADA_QTD; i++) {
       const esp_err_t r =
-          esp_now_send(receptorMAC, (const uint8_t *)&p, sizeof(p));
+          esp_now_send(MAC_RECEPTOR, (const uint8_t *)&p, sizeof(p));
       if (r != ESP_OK) errosDeEnvio.fetch_add(1, std::memory_order_relaxed);
 
       // Cede a CPU: a tarefaBotoes tem prioridade maior e volta a rodar aqui.
@@ -138,6 +139,32 @@ static void tarefaDiagnostico(void *arg) {
   }
 }
 
+#ifdef DINO_SMOKETEST
+// Build de smoke test: injeta eventos sintéticos para exercitar o rádio sem
+// depender de alguém apertando os botões. Não entra no firmware normal.
+static void tarefaSmoke(void *arg) {
+  (void)arg;
+  vTaskDelay(pdMS_TO_TICKS(3000));  // deixa o receptor terminar o boot
+
+  for (int ciclo = 0; ciclo < 2; ciclo++) {
+    for (uint8_t canal = 0; canal < NUM_CANAIS; canal++) {
+      canais[canal].estadoAtual = !canais[canal].estadoAtual;
+      canais[canal].seq++;
+
+      const pacote_t p = montarPacote(bootId, canal, &canais[canal]);
+      xQueueSend(filaEventos, &p, 0);
+
+      Serial.printf("[smoke] press sintetico canal=%u estado=%u\n", canal,
+                    canais[canal].estadoAtual);
+      vTaskDelay(pdMS_TO_TICKS(800));
+    }
+  }
+
+  Serial.println("[smoke] fim");
+  vTaskDelete(NULL);
+}
+#endif
+
 void setup() {
   Serial.begin(115200);
 
@@ -157,12 +184,26 @@ void setup() {
   Serial.print(banner);
 
   Serial.printf("  receptor alvo: %02X:%02X:%02X:%02X:%02X:%02X\n",
-                receptorMAC[0], receptorMAC[1], receptorMAC[2], receptorMAC[3],
-                receptorMAC[4], receptorMAC[5]);
+                MAC_RECEPTOR[0], MAC_RECEPTOR[1], MAC_RECEPTOR[2], MAC_RECEPTOR[3],
+                MAC_RECEPTOR[4], MAC_RECEPTOR[5]);
 
-  if (macEhPlaceholder(receptorMAC)) {
-    Serial.println("  *** ATENCAO: receptorMAC ainda e o placeholder. ***");
-    Serial.println("  *** Nenhum pacote vai chegar ao receptor.       ***");
+  if (macEhPlaceholder(MAC_RECEPTOR)) {
+    Serial.println("  *** ATENCAO: MAC_RECEPTOR ainda e o placeholder. ***");
+    Serial.println("  *** Nenhum pacote vai chegar ao receptor.        ***");
+  }
+
+  // Firmware trocado de placa: o MAC gravado em config_rede.h não bate com o
+  // MAC real desta placa.
+  uint8_t meuMac[6];
+  WiFi.macAddress(meuMac);
+  if (!macEhPlaceholder(MAC_EMISSOR) && !remetenteAutorizado(meuMac, MAC_EMISSOR)) {
+    Serial.println("  *** ATENCAO: esta placa nao e a listada como EMISSOR ***");
+    Serial.println("  *** em config_rede.h. Firmware trocado de placa?     ***");
+  }
+
+  if (chaveEhInsegura(PMK) || chaveEhInsegura(LMK)) {
+    Serial.println("  *** ATENCAO: chaves de exemplo em uso.        ***");
+    Serial.println("  *** Rode `make chaves` e regrave as 2 placas. ***");
   }
 
   // As filas precisam existir antes de qualquer callback poder ser chamado.
@@ -180,19 +221,33 @@ void setup() {
   }
   esp_now_register_send_cb(onEnvioConcluido);
 
+  // Criptografia nativa do ESP-NOW (AES-CCM). A PMK cifra a LMK no handshake;
+  // a LMK cifra o tráfego deste par. As duas placas usam os mesmos 32 bytes.
+  if (esp_now_set_pmk(PMK) != ESP_OK) {
+    Serial.println("falha ao definir PMK");
+    return;
+  }
+
   esp_now_peer_info_t peerInfo = {};
-  memcpy(peerInfo.peer_addr, receptorMAC, 6);
+  memcpy(peerInfo.peer_addr, MAC_RECEPTOR, 6);
+  memcpy(peerInfo.lmk, LMK, TAM_CHAVE);
   peerInfo.channel = 0;
-  peerInfo.encrypt = false;
+  peerInfo.encrypt = true;
 
   if (esp_now_add_peer(&peerInfo) != ESP_OK) {
     Serial.println("falha ao adicionar peer");
     return;
   }
+  Serial.println("  criptografia ESP-NOW: ativa (AES-CCM)");
 
   xTaskCreate(tarefaBotoes,      "botoes", 3072, NULL, 3, NULL);
   xTaskCreate(tarefaEnvio,       "envio",  4096, NULL, 2, NULL);
   xTaskCreate(tarefaDiagnostico, "diag",   3072, NULL, 1, NULL);
+
+#ifdef DINO_SMOKETEST
+  Serial.println("  *** BUILD DE SMOKE TEST -- nao use como firmware final ***");
+  xTaskCreate(tarefaSmoke, "smoke", 3072, NULL, 2, NULL);
+#endif
 }
 
 void loop() {

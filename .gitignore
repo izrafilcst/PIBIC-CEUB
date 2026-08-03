@@ -6,3 +6,11 @@ build/
 *.elf
 *.map
 *.merged.bin
+
+# material de chave (gerado por `make chaves`)
+lib/chaves.h
+*/chaves.h
+
+# python
+__pycache__/
+*.pyc

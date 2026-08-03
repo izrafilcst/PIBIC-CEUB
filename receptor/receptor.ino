@@ -18,9 +18,12 @@
 
 #include <atomic>
 
+#include "chaves.h"
+#include "config_rede.h"
 #include "identidade.h"
 #include "protocolo.h"
 #include "receptor_logic.h"
+#include "seguranca.h"
 
 #define LED0_PIN 6
 #define LED1_PIN 7
@@ -46,13 +49,21 @@ struct QuadroRecebido {
 #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
 static void onRecebimento(const esp_now_recv_info_t *info, const uint8_t *dados,
                           int tamanho) {
-  (void)info;
+  const uint8_t *remetente = (info != NULL) ? info->src_addr : NULL;
 #else
 static void onRecebimento(const uint8_t *mac, const uint8_t *dados,
                           int tamanho) {
-  (void)mac;
+  const uint8_t *remetente = mac;
 #endif
   // Contexto da task de WiFi: copiar e sair. Nada de digitalWrite nem Serial.
+
+  // A criptografia do ESP-NOW só cobre peers registrados: um quadro de um MAC
+  // desconhecido ainda chega aqui, em claro. Este filtro fecha essa porta.
+  if (!remetenteAutorizado(remetente, MAC_EMISSOR)) {
+    quadrosDescartados.fetch_add(1, std::memory_order_relaxed);
+    return;
+  }
+
   if (tamanho <= 0 || tamanho > (int)sizeof(pacote_t)) {
     quadrosDescartados.fetch_add(1, std::memory_order_relaxed);
     return;
@@ -108,7 +119,29 @@ void setup() {
   montarBanner(banner, sizeof(banner), PAPEL_RECEPTOR,
                WiFi.macAddress().c_str(), esp_random());
   Serial.print(banner);
-  Serial.println("  copie o MAC acima para o receptorMAC do emissor");
+  Serial.println("  copie o MAC acima para MAC_RECEPTOR em lib/config_rede.h");
+
+  Serial.printf("  emissor aceito: %02X:%02X:%02X:%02X:%02X:%02X\n",
+                MAC_EMISSOR[0], MAC_EMISSOR[1], MAC_EMISSOR[2], MAC_EMISSOR[3],
+                MAC_EMISSOR[4], MAC_EMISSOR[5]);
+
+  if (macEhPlaceholder(MAC_EMISSOR)) {
+    Serial.println("  *** ATENCAO: MAC_EMISSOR ainda e o placeholder.     ***");
+    Serial.println("  *** O filtro de remetente vai descartar tudo.       ***");
+  }
+
+  uint8_t meuMac[6];
+  WiFi.macAddress(meuMac);
+  if (!macEhPlaceholder(MAC_RECEPTOR) &&
+      !remetenteAutorizado(meuMac, MAC_RECEPTOR)) {
+    Serial.println("  *** ATENCAO: esta placa nao e a listada como RECEPTOR ***");
+    Serial.println("  *** em config_rede.h. Firmware trocado de placa?      ***");
+  }
+
+  if (chaveEhInsegura(PMK) || chaveEhInsegura(LMK)) {
+    Serial.println("  *** ATENCAO: chaves de exemplo em uso.        ***");
+    Serial.println("  *** Rode `make chaves` e regrave as 2 placas. ***");
+  }
 
   filaQuadros = xQueueCreate(PROFUNDIDADE_FILA, sizeof(QuadroRecebido));
   if (filaQuadros == NULL) {
@@ -122,6 +155,25 @@ void setup() {
     return;
   }
   esp_now_register_recv_cb(onRecebimento);
+
+  // Para DECIFRAR os quadros do emissor, o receptor também precisa registrá-lo
+  // como peer cifrado com a mesma LMK. Sem isso os pacotes chegam ilegíveis.
+  if (esp_now_set_pmk(PMK) != ESP_OK) {
+    Serial.println("falha ao definir PMK");
+    return;
+  }
+
+  esp_now_peer_info_t peerEmissor = {};
+  memcpy(peerEmissor.peer_addr, MAC_EMISSOR, 6);
+  memcpy(peerEmissor.lmk, LMK, TAM_CHAVE);
+  peerEmissor.channel = 0;
+  peerEmissor.encrypt = true;
+
+  if (esp_now_add_peer(&peerEmissor) != ESP_OK) {
+    Serial.println("falha ao adicionar peer emissor");
+    return;
+  }
+  Serial.println("  criptografia ESP-NOW: ativa (AES-CCM)");
 
   xTaskCreate(tarefaLeds,        "leds", 4096, NULL, 3, NULL);
   xTaskCreate(tarefaDiagnostico, "diag", 3072, NULL, 1, NULL);

@@ -16,24 +16,63 @@ esquematico.html  diagrama de ligação
 `lib/` é a única fonte da verdade. As pastas de sketch contêm symlinks porque a
 IDE do Arduino só compila arquivos que estejam dentro da pasta do sketch.
 
-## Rodar os testes
+## Comandos
 
 ```sh
-make test        # 25 testes, sem precisar de placa
-make sketches    # recria os symlinks em emissor/ e receptor/
+make test        # 42 testes de host, sem precisar de placa
+make chaves      # gera lib/chaves.h (PMK/LMK aleatórias, não versionado)
+make macs        # lê o MAC das duas placas via esptool -> lib/config_rede.h
+make gravar      # compila e grava as duas
+make smoke       # grava, reinicia e verifica a comunicação ponta a ponta
+make sketches    # recria os symlinks de lib/ em emissor/ e receptor/
 make limpar
 ```
 
-## Compilar
+As portas padrão são `/dev/ttyACM0` (emissor) e `/dev/ttyACM1` (receptor);
+sobrescreva com `make macs PORTA_EMISSOR=... PORTA_RECEPTOR=...`.
+
+### Ordem para subir do zero
 
 ```sh
-arduino-cli compile --fqbn esp32:esp32:esp32c3 emissor
-arduino-cli compile --fqbn esp32:esp32:esp32c3 receptor
+make chaves                     # 1. material de chave
+make macs                       # 2. descobre e grava os MACs
+make gravar                     # 3. grava as duas placas
+make smoke                      # 4. confirma que conversam
 ```
 
-Verificado no core `esp32:esp32` 3.0.7. Os callbacks do ESP-NOW mudaram de
-assinatura nos cores 3.0.0 e 3.2.0; os sketches têm guardas de versão para
-compilar nas três gerações.
+## Compilar à mão
+
+```sh
+arduino-cli compile --fqbn esp32:esp32:esp32c3 --board-options CDCOnBoot=cdc emissor
+```
+
+Verificado no core `esp32:esp32` 3.0.7. Dois detalhes que mordem:
+
+- **`CDCOnBoot=cdc` é obrigatório.** O padrão do C3 é `cdc_on_boot=0`, que manda
+  o `Serial` para a UART0 em vez da USB nativa — sem essa opção você não vê nada
+  em `/dev/ttyACM*`.
+- Os callbacks do ESP-NOW mudaram de assinatura nos cores 3.0.0 e 3.2.0; os
+  sketches têm guardas de versão para compilar nas três gerações.
+
+## Criptografia
+
+Usa a criptografia **nativa do ESP-NOW** (AES-CCM), que não é ligada por padrão:
+o código anterior tinha `encrypt = false` e trafegava em claro.
+
+- **PMK** (16 bytes) cifra a LMK durante o handshake; **LMK** (16 bytes) cifra o
+  tráfego do par. Ambas em `lib/chaves.h`, **fora do git** — o versionado é
+  `lib/chaves.exemplo.h`, e o firmware detecta as chaves de exemplo e grita no
+  boot.
+- As **duas** placas registram a outra como peer cifrado. O receptor precisa
+  disso para conseguir decifrar, e por isso agora ele também precisa saber o MAC
+  do emissor.
+- A criptografia do ESP-NOW só cobre peers registrados: um quadro vindo de um MAC
+  desconhecido **ainda chega ao callback, em claro**. Por isso há um filtro de
+  remetente por MAC, em tempo constante, antes de qualquer processamento.
+
+Isso protege contra bisbilhotar e contra um vizinho acender seus LEDs. **Não**
+protege contra alguém com acesso físico à placa: as chaves estão na flash sem
+Flash Encryption. Fechar isso exigiria migrar o build para ESP-IDF.
 
 ## Arquitetura FreeRTOS
 
@@ -66,11 +105,14 @@ voltar ao começo e o receptor descartaria os N cliques seguintes.
 
 ## Pendências conhecidas
 
-- `receptorMAC` em `emissor/emissor.ino` ainda é o placeholder
-  `AA:BB:CC:DD:EE:FF`. Suba o receptor, anote o MAC que ele imprime no boot e
-  preencha ali.
-- O receptor aceita pacotes de qualquer remetente (`encrypt = false`, sem filtro
-  de MAC). Suficiente para bancada.
+- **`lib/config_rede.h` ainda tem os dois MACs como placeholder.** `make macs`
+  resolve, mas exige acesso às portas seriais (veja abaixo). Sem isso nada
+  funciona em hardware — os dois sketches avisam no boot.
+- **Nada foi rodado em placa.** Toda a verificação até aqui é teste de host e
+  compilação. `make smoke` existe mas nunca chegou a executar.
+- Acesso serial: as placas ficam em `/dev/ttyACM*` com dono `root:dialout`, e o
+  grupo `dialout` está vazio. Precisa de `sudo usermod -aG dialout $USER` e
+  logout/login.
 - Os sketches originais mencionavam um `CLAUDE.md` que nunca existiu neste
   repositório — a justificativa de usar o L7805CV em vez de deep sleep não está
   documentada em lugar nenhum. Vale registrar antes de esquecer.
