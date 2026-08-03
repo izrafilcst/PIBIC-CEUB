@@ -1,0 +1,3 @@
+Versão original dos sketches, antes da reestruturação com TDD + FreeRTOS.
+Mantida só como referência histórica (o repositório não tem git).
+O debounce daqui NÃO funciona: ver test/test_debounce.cpp.

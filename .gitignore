@@ -1,0 +1,8 @@
+# build dos testes de host
+build/
+
+# artefatos do arduino-cli (--export-binaries)
+*/build/
+*.elf
+*.map
+*.merged.bin
