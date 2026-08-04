@@ -4,18 +4,13 @@
 // no banner de boot.
 //
 // Tanto no ESP32 clássico quanto no C3 o MAC base da efuse é igual ao MAC da
-// interface STA, que é a que o ESP-NOW usa aqui — o valor que o esptool reporta
-// entra direto.
+// interface STA, que é a que o ESP-NOW usa aqui.
 #pragma once
 
 #include <stdint.h>
 
-// Placeholders: o emissor foi trocado por um DevKit clássico, então os dois
-// MACs precisam ser lidos de novo. Rode `make macs`. Enquanto estiverem assim,
-// os dois sketches avisam no boot.
-static const uint8_t MAC_EMISSOR[6]  = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
-static const uint8_t MAC_RECEPTOR[6] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
+static const uint8_t MAC_EMISSOR[6]  = {0x80, 0x7D, 0x3A, 0xF2, 0x83, 0x9C};
+static const uint8_t MAC_RECEPTOR[6] = {0x14, 0x63, 0x93, 0xC2, 0xF1, 0x9C};
 
-// Canal fixo do ESP-NOW. Deixar no "canal atual" (channel = 0) não garante que
-// os dois rádios fiquem no mesmo canal quando nenhum está associado a um AP.
+// Canal fixo do ESP-NOW.
 #define CANAL_ESPNOW 1

@@ -19,6 +19,7 @@ test/         testes de host (g++), rodam sem hardware
 emissor/      sketch do emissor (FreeRTOS) + links para lib/
 receptor/     sketch do receptor (FreeRTOS) + links para lib/
 ferramentas/  scripts de bancada (macs, chaves, smoke, teste de RF)
+docs/         registros de ensaio (diagnóstico de RF do par C3)
 legado/       versão original dos sketches, antes da reestruturação
 esquematico.html  diagrama de ligação (desatualizado: ver pendências)
 ```

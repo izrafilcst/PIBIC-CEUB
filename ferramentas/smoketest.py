@@ -97,6 +97,9 @@ def main() -> int:
     p.add_argument("--segundos", type=float, default=20.0)
     p.add_argument("--manter-smoke", action="store_true",
                    help="não regravar o firmware normal no fim")
+    p.add_argument("--receptor-sem-tx", action="store_true",
+                   help="receptor não consegue transmitir (TX quebrado): "
+                        "não exige ACK, só a entrega em si")
     args = p.parse_args()
     opcoes_receptor = args.opcoes_receptor.split()
 
@@ -128,13 +131,20 @@ def main() -> int:
     verifica("botao=" in emi, "emissor transmitiu")
     verifica("led0 -> aceso" in rec, "receptor acendeu o LED0")
     verifica("led1 -> aceso" in rec, "receptor acendeu o LED1")
-    # 4 eventos sintéticos x 3 reenvios da rajada = 12 quadros unicast, todos
-    # com ACK esperado. Conferir o último relatório em vez de só procurar texto.
+    # 4 eventos sintéticos x 3 reenvios da rajada = 12 quadros unicast. Em
+    # hardware saudável, todos voltam com ACK. Conferir o último relatório em
+    # vez de só procurar texto.
     relatos = re.findall(r"confirmados=(\d+) sem_confirmacao=(\d+)", emi)
     confirmados, sem_ack = (int(relatos[-1][0]), int(relatos[-1][1])) if relatos \
         else (0, -1)
-    verifica(confirmados >= 12, f"12 quadros confirmados por ACK (obtido {confirmados})")
-    verifica(sem_ack == 0, f"nenhum quadro sem ACK (obtido {sem_ack})")
+    if args.receptor_sem_tx:
+        # O ACK sai do receptor: sem TX nele, nunca chega. A entrega em si
+        # (led0/led1 acesos, checado acima) é o que importa aqui.
+        print(f"  (info) confirmados={confirmados} sem_confirmacao={sem_ack} "
+              f"-- ACK ignorado, receptor sem TX")
+    else:
+        verifica(confirmados >= 12, f"12 quadros confirmados por ACK (obtido {confirmados})")
+        verifica(sem_ack == 0, f"nenhum quadro sem ACK (obtido {sem_ack})")
 
     if falhas:
         print(f"\n{VERMELHO}--- serial do emissor ---{NEUTRO}\n{emi[-2000:]}")

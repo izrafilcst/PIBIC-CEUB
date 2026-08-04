@@ -31,6 +31,7 @@ CHIP_EMISSOR    ?= esp32
 CHIP_RECEPTOR   ?= esp32c3
 OPCOES_EMISSOR  ?=
 OPCOES_RECEPTOR ?= --board-options CDCOnBoot=cdc
+FLAGS_SMOKE     ?=
 
 .PHONY: test sketches chaves macs gravar smoke limpar
 
@@ -50,7 +51,7 @@ smoke: sketches
 	@python3 ferramentas/smoketest.py \
 	  --emissor $(PORTA_EMISSOR)   --fqbn-emissor $(FQBN_EMISSOR) \
 	  --receptor $(PORTA_RECEPTOR) --fqbn-receptor $(FQBN_RECEPTOR) \
-	  --opcoes-receptor "$(OPCOES_RECEPTOR)"
+	  --opcoes-receptor "$(OPCOES_RECEPTOR)" $(FLAGS_SMOKE)
 
 # Diagnóstico de RF puro, sem ESP-NOW: uma placa vira AP, a outra escaneia.
 # Foi o que provou que o par de C3 anterior não se enxergava.
