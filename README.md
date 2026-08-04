@@ -1,4 +1,4 @@
-# Dino — Emissor / Receptor via ESP-NOW
+# PIBIC-CEUB: Emissor / Receptor via ESP-NOW
 
 Dois botões controlam dois LEDs em outra placa, por ESP-NOW.
 
@@ -14,7 +14,7 @@ por `CONFIG_IDF_TARGET_*`, então o mesmo código compila nas duas famílias.
 ## Estrutura
 
 ```
-lib/          lógica pura, sem Arduino — é aqui que mora o comportamento
+lib/          lógica pura, sem Arduino, é aqui que mora o comportamento
 test/         testes de host (g++), rodam sem hardware
 emissor/      sketch do emissor (FreeRTOS) + links para lib/
 receptor/     sketch do receptor (FreeRTOS) + links para lib/
@@ -62,9 +62,9 @@ arduino-cli compile --fqbn esp32:esp32:esp32c3 --board-options CDCOnBoot=cdc rec
 Verificado no core `esp32:esp32` 3.0.7. Três detalhes que mordem:
 
 - **`CDCOnBoot=cdc` é obrigatório no C3, e inválido no clássico.** O padrão do C3
-  é `cdc_on_boot=0`, que manda o `Serial` para a UART0 em vez da USB nativa —
-  sem a opção você não vê nada em `/dev/ttyACM*`. Já o board clássico nem tem
-  esse menu: passar a opção para ele é erro. Por isso o Makefile tem
+  é `cdc_on_boot=0`, que manda o `Serial` para a UART0 em vez da USB nativa,
+  então sem a opção você não vê nada em `/dev/ttyACM*`. Já o board clássico
+  nem tem esse menu: passar a opção para ele é erro. Por isso o Makefile tem
   `OPCOES_EMISSOR` e `OPCOES_RECEPTOR` separados.
 - **Canal fixo.** Sem associação a um AP, `channel = 0` ("canal atual") não
   garante que os dois rádios fiquem no mesmo canal; os sketches chamam
@@ -78,7 +78,7 @@ Usa a criptografia **nativa do ESP-NOW** (AES-CCM), que não é ligada por padr�
 o código anterior tinha `encrypt = false` e trafegava em claro.
 
 - **PMK** (16 bytes) cifra a LMK durante o handshake; **LMK** (16 bytes) cifra o
-  tráfego do par. Ambas em `lib/chaves.h`, **fora do git** — o versionado é
+  tráfego do par. Ambas em `lib/chaves.h`, **fora do git**. O versionado é
   `lib/chaves.exemplo.h`, e o firmware detecta as chaves de exemplo e grita no
   boot.
 - As **duas** placas registram a outra como peer cifrado. O receptor precisa
@@ -94,14 +94,14 @@ Flash Encryption. Fechar isso exigiria migrar o build para ESP-IDF.
 
 ## Arquitetura FreeRTOS
 
-**Emissor** — `tarefaBotoes` (prio 3) amostra os pinos a cada 5 ms com
+**Emissor.** `tarefaBotoes` (prio 3) amostra os pinos a cada 5 ms com
 `vTaskDelayUntil`, roda o debounce e publica o evento em `filaEventos`.
 `tarefaEnvio` (prio 2) consome a fila e faz a rajada de 3 reenvios; o
 `vTaskDelay` entre pacotes cede a CPU, então a leitura dos botões continua
 rodando durante a rajada. `tarefaDiagnostico` (prio 1) consome o status dos
 callbacks e relata a cada 10 s.
 
-**Receptor** — o callback do ESP-NOW roda no contexto da task de WiFi e apenas
+**Receptor.** O callback do ESP-NOW roda no contexto da task de WiFi e apenas
 copia o quadro para `filaQuadros`. `tarefaLeds` (prio 3) consome a fila, decide
 e aciona os LEDs fora do caminho crítico do rádio.
 
@@ -116,10 +116,11 @@ typedef struct __attribute__((packed)) {
 } pacote_t;
 ```
 
-O emissor manda o **estado absoluto**, não um "toggle" — perder um pacote não
-dessincroniza os LEDs. A rajada de 3 cobre perda; o receptor deduplica por
-`seq`. O `bootId` existe porque, sem ele, um reboot do emissor faz a sequência
-voltar ao começo e o receptor descartaria os N cliques seguintes.
+O emissor manda o **estado absoluto**, não um "toggle", de modo que perder um
+pacote não dessincroniza os LEDs. A rajada de 3 cobre perda; o receptor
+deduplica por `seq`. O `bootId` existe porque, sem ele, um reboot do emissor
+faz a sequência voltar ao começo e o receptor descartaria os N cliques
+seguintes.
 
 ## Pendências conhecidas
 
@@ -129,10 +130,10 @@ voltar ao começo e o receptor descartaria os N cliques seguintes.
 - **A combinação ESP32 clássico + C3 nunca foi testada em hardware.** Compila
   nos dois alvos, mas `make smoke` ainda não rodou com o DevKit novo.
 - O `esquematico.html` ainda descreve o emissor como C3 com botões em IO4/IO5.
-  Com o DevKit clássico os botões passaram para GPIO32/33 — o desenho está
-  desatualizado.
+  Com o DevKit clássico os botões passaram para GPIO32/33, então o desenho
+  está desatualizado.
 - Os sketches originais mencionavam um `CLAUDE.md` que nunca existiu neste
-  repositório — a justificativa de usar o L7805CV em vez de deep sleep não está
+  repositório. A justificativa de usar o L7805CV em vez de deep sleep não está
   documentada em lugar nenhum. Vale registrar antes de esquecer.
 - `esquematico.html` tem correções pendentes apontadas em revisão: falta
   `<meta name="viewport">`, o símbolo das chaves desenha os dois fios no mesmo
@@ -143,15 +144,15 @@ voltar ao começo e o receptor descartaria os N cliques seguintes.
 O projeto começou com dois ESP32-C3. Eles nunca conseguiram se comunicar. A
 depuração eliminou, com evidência, todas as causas de software:
 
-- criptografia desligada — mesma falha;
-- power save desligado nos dois lados — mesma falha;
-- canal fixado explicitamente nos dois lados — mesma falha;
-- papéis trocados entre as placas — falha simétrica, então não era uma placa só.
+- criptografia desligada: mesma falha;
+- power save desligado nos dois lados: mesma falha;
+- canal fixado explicitamente nos dois lados: mesma falha;
+- papéis trocados entre as placas: falha simétrica, então não era uma placa só.
 
 O que fechou a questão foi um teste de RF puro, sem ESP-NOW (`make teste-rf`):
 uma placa subiu um AP e a outra escaneou. O AP a centímetros de distância ficou
 **invisível**, enquanto o roteador de um vizinho aparecia a `-34 dBm` e uma rede
-distante a `-87 dBm`. RX excelente nas duas, TX que não sai — em ambas. Com o
+distante a `-87 dBm`. RX excelente nas duas, TX que não sai em nenhuma. Com o
 histórico de problemas conhecidos daquele par, o emissor foi trocado por um
 DevKit clássico.
 
