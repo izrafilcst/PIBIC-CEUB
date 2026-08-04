@@ -16,6 +16,7 @@ USB que aparece como /dev/ttyACM*.
 """
 import argparse
 import pathlib
+import re
 import subprocess
 import sys
 import time
@@ -26,8 +27,6 @@ except ImportError:
     raise SystemExit("pyserial não instalado: pip install pyserial")
 
 RAIZ = pathlib.Path(__file__).resolve().parent.parent
-FQBN = "esp32:esp32:esp32c3"
-OPCOES = ["--board-options", "CDCOnBoot=cdc"]
 
 VERDE, VERMELHO, NEUTRO = "\033[32m", "\033[31m", "\033[0m"
 falhas = []
@@ -40,8 +39,9 @@ def verifica(condicao: bool, descricao: str) -> None:
         falhas.append(descricao)
 
 
-def gravar(sketch: str, porta: str, smoke: bool = False) -> None:
-    cmd = ["arduino-cli", "compile", "--fqbn", FQBN, *OPCOES,
+def gravar(sketch: str, porta: str, fqbn: str, opcoes: list,
+           smoke: bool = False) -> None:
+    cmd = ["arduino-cli", "compile", "--fqbn", fqbn, *opcoes,
            "--upload", "--port", porta]
     if smoke:
         cmd += ["--build-property", "build.defines=-DDINO_SMOKETEST"]
@@ -89,16 +89,20 @@ def coletar(portas: dict, segundos: float) -> dict:
 
 def main() -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("--emissor", default="/dev/ttyACM0")
-    p.add_argument("--receptor", default="/dev/ttyACM1")
+    p.add_argument("--emissor", default="/dev/ttyUSB0")
+    p.add_argument("--fqbn-emissor", default="esp32:esp32:esp32")
+    p.add_argument("--receptor", default="/dev/ttyACM0")
+    p.add_argument("--fqbn-receptor", default="esp32:esp32:esp32c3")
+    p.add_argument("--opcoes-receptor", default="--board-options CDCOnBoot=cdc")
     p.add_argument("--segundos", type=float, default=20.0)
     p.add_argument("--manter-smoke", action="store_true",
                    help="não regravar o firmware normal no fim")
     args = p.parse_args()
+    opcoes_receptor = args.opcoes_receptor.split()
 
     print("== gravando ==")
-    gravar("receptor", args.receptor)
-    gravar("emissor", args.emissor, smoke=True)
+    gravar("receptor", args.receptor, args.fqbn_receptor, opcoes_receptor)
+    gravar("emissor", args.emissor, args.fqbn_emissor, [], smoke=True)
 
     print(f"\n== coletando serial por {args.segundos:.0f}s ==")
     saidas = coletar({"emissor": args.emissor, "receptor": args.receptor},
@@ -124,8 +128,13 @@ def main() -> int:
     verifica("botao=" in emi, "emissor transmitiu")
     verifica("led0 -> aceso" in rec, "receptor acendeu o LED0")
     verifica("led1 -> aceso" in rec, "receptor acendeu o LED1")
-    verifica("confirmados=" in emi and "confirmados=0 " not in emi,
-             "envios confirmados pelo rádio")
+    # 4 eventos sintéticos x 3 reenvios da rajada = 12 quadros unicast, todos
+    # com ACK esperado. Conferir o último relatório em vez de só procurar texto.
+    relatos = re.findall(r"confirmados=(\d+) sem_confirmacao=(\d+)", emi)
+    confirmados, sem_ack = (int(relatos[-1][0]), int(relatos[-1][1])) if relatos \
+        else (0, -1)
+    verifica(confirmados >= 12, f"12 quadros confirmados por ACK (obtido {confirmados})")
+    verifica(sem_ack == 0, f"nenhum quadro sem ACK (obtido {sem_ack})")
 
     if falhas:
         print(f"\n{VERMELHO}--- serial do emissor ---{NEUTRO}\n{emi[-2000:]}")
@@ -133,7 +142,7 @@ def main() -> int:
 
     if not args.manter_smoke:
         print("\n== restaurando firmware normal do emissor ==")
-        gravar("emissor", args.emissor, smoke=False)
+        gravar("emissor", args.emissor, args.fqbn_emissor, [], smoke=False)
 
     print(f"\n{len(falhas)} falha(s)")
     return 1 if falhas else 0

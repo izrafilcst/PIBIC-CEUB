@@ -1,6 +1,15 @@
-# Dino — Emissor / Receptor ESP32-C3 via ESP-NOW
+# Dino — Emissor / Receptor via ESP-NOW
 
-Dois botões num ESP32-C3 controlam dois LEDs em outro ESP32-C3, por ESP-NOW.
+Dois botões controlam dois LEDs em outra placa, por ESP-NOW.
+
+| Papel | Placa | Serial | Pinos |
+|---|---|---|---|
+| Emissor | ESP32 DevKit clássico | `/dev/ttyUSB*` | botões em GPIO32/33 |
+| Receptor | ESP32-C3 | `/dev/ttyACM*` | LEDs em GPIO6/7 |
+
+As duas pontas são chips diferentes de propósito: o par de C3 original não
+conseguia se comunicar (ver *Histórico* no fim). Os sketches escolhem os pinos
+por `CONFIG_IDF_TARGET_*`, então o mesmo código compila nas duas famílias.
 
 ## Estrutura
 
@@ -9,8 +18,9 @@ lib/          lógica pura, sem Arduino — é aqui que mora o comportamento
 test/         testes de host (g++), rodam sem hardware
 emissor/      sketch do emissor (FreeRTOS) + links para lib/
 receptor/     sketch do receptor (FreeRTOS) + links para lib/
+ferramentas/  scripts de bancada (macs, chaves, smoke, teste de RF)
 legado/       versão original dos sketches, antes da reestruturação
-esquematico.html  diagrama de ligação
+esquematico.html  diagrama de ligação (desatualizado: ver pendências)
 ```
 
 `lib/` é a única fonte da verdade. As pastas de sketch contêm symlinks porque a
@@ -24,12 +34,14 @@ make chaves      # gera lib/chaves.h (PMK/LMK aleatórias, não versionado)
 make macs        # lê o MAC das duas placas via esptool -> lib/config_rede.h
 make gravar      # compila e grava as duas
 make smoke       # grava, reinicia e verifica a comunicação ponta a ponta
+make teste-rf    # diagnóstico de RF puro (AP + scanner), sem ESP-NOW
 make sketches    # recria os symlinks de lib/ em emissor/ e receptor/
 make limpar
 ```
 
-As portas padrão são `/dev/ttyACM0` (emissor) e `/dev/ttyACM1` (receptor);
-sobrescreva com `make macs PORTA_EMISSOR=... PORTA_RECEPTOR=...`.
+As portas padrão são `/dev/ttyUSB0` (emissor, DevKit clássico) e `/dev/ttyACM0`
+(receptor, C3); sobrescreva com `make smoke PORTA_EMISSOR=... PORTA_RECEPTOR=...`.
+FQBN, chip e opções de placa também são variáveis do Makefile, por papel.
 
 ### Ordem para subir do zero
 
@@ -43,14 +55,20 @@ make smoke                      # 4. confirma que conversam
 ## Compilar à mão
 
 ```sh
-arduino-cli compile --fqbn esp32:esp32:esp32c3 --board-options CDCOnBoot=cdc emissor
+arduino-cli compile --fqbn esp32:esp32:esp32 emissor
+arduino-cli compile --fqbn esp32:esp32:esp32c3 --board-options CDCOnBoot=cdc receptor
 ```
 
-Verificado no core `esp32:esp32` 3.0.7. Dois detalhes que mordem:
+Verificado no core `esp32:esp32` 3.0.7. Três detalhes que mordem:
 
-- **`CDCOnBoot=cdc` é obrigatório.** O padrão do C3 é `cdc_on_boot=0`, que manda
-  o `Serial` para a UART0 em vez da USB nativa — sem essa opção você não vê nada
-  em `/dev/ttyACM*`.
+- **`CDCOnBoot=cdc` é obrigatório no C3, e inválido no clássico.** O padrão do C3
+  é `cdc_on_boot=0`, que manda o `Serial` para a UART0 em vez da USB nativa —
+  sem a opção você não vê nada em `/dev/ttyACM*`. Já o board clássico nem tem
+  esse menu: passar a opção para ele é erro. Por isso o Makefile tem
+  `OPCOES_EMISSOR` e `OPCOES_RECEPTOR` separados.
+- **Canal fixo.** Sem associação a um AP, `channel = 0` ("canal atual") não
+  garante que os dois rádios fiquem no mesmo canal; os sketches chamam
+  `esp_wifi_set_channel(CANAL_ESPNOW, ...)` e usam esse canal no peer.
 - Os callbacks do ESP-NOW mudaram de assinatura nos cores 3.0.0 e 3.2.0; os
   sketches têm guardas de versão para compilar nas três gerações.
 
@@ -105,17 +123,38 @@ voltar ao começo e o receptor descartaria os N cliques seguintes.
 
 ## Pendências conhecidas
 
-- **`lib/config_rede.h` ainda tem os dois MACs como placeholder.** `make macs`
-  resolve, mas exige acesso às portas seriais (veja abaixo). Sem isso nada
-  funciona em hardware — os dois sketches avisam no boot.
-- **Nada foi rodado em placa.** Toda a verificação até aqui é teste de host e
-  compilação. `make smoke` existe mas nunca chegou a executar.
-- Acesso serial: as placas ficam em `/dev/ttyACM*` com dono `root:dialout`, e o
-  grupo `dialout` está vazio. Precisa de `sudo usermod -aG dialout $USER` e
-  logout/login.
+- **`lib/config_rede.h` está com os dois MACs em placeholder.** A troca do
+  emissor invalidou o MAC antigo; rode `make macs` com as duas placas plugadas.
+  Enquanto estiver assim, os dois sketches avisam no boot.
+- **A combinação ESP32 clássico + C3 nunca foi testada em hardware.** Compila
+  nos dois alvos, mas `make smoke` ainda não rodou com o DevKit novo.
+- O `esquematico.html` ainda descreve o emissor como C3 com botões em IO4/IO5.
+  Com o DevKit clássico os botões passaram para GPIO32/33 — o desenho está
+  desatualizado.
 - Os sketches originais mencionavam um `CLAUDE.md` que nunca existiu neste
   repositório — a justificativa de usar o L7805CV em vez de deep sleep não está
   documentada em lugar nenhum. Vale registrar antes de esquecer.
 - `esquematico.html` tem correções pendentes apontadas em revisão: falta
   `<meta name="viewport">`, o símbolo das chaves desenha os dois fios no mesmo
   ponto (lê como curto) e o GPIO11 não está na lista de pinos a evitar.
+
+## Histórico: por que as placas são diferentes
+
+O projeto começou com dois ESP32-C3. Eles nunca conseguiram se comunicar. A
+depuração eliminou, com evidência, todas as causas de software:
+
+- criptografia desligada — mesma falha;
+- power save desligado nos dois lados — mesma falha;
+- canal fixado explicitamente nos dois lados — mesma falha;
+- papéis trocados entre as placas — falha simétrica, então não era uma placa só.
+
+O que fechou a questão foi um teste de RF puro, sem ESP-NOW (`make teste-rf`):
+uma placa subiu um AP e a outra escaneou. O AP a centímetros de distância ficou
+**invisível**, enquanto o roteador de um vizinho aparecia a `-34 dBm` e uma rede
+distante a `-87 dBm`. RX excelente nas duas, TX que não sai — em ambas. Com o
+histórico de problemas conhecidos daquele par, o emissor foi trocado por um
+DevKit clássico.
+
+`make teste-rf` continua no repositório: é o primeiro comando a rodar se a
+comunicação parar, porque separa problema de rádio de problema de software em
+um minuto.

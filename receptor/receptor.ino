@@ -14,6 +14,7 @@
 #include <WiFi.h>
 #include <esp_now.h>
 #include <esp_random.h>
+#include <esp_wifi.h>
 #include <inttypes.h>
 
 #include <atomic>
@@ -25,8 +26,16 @@
 #include "receptor_logic.h"
 #include "seguranca.h"
 
-#define LED0_PIN 6
-#define LED1_PIN 7
+// Pinos por família de chip, para o mesmo sketch servir nas duas placas.
+#if CONFIG_IDF_TARGET_ESP32
+  #define LED0_PIN 25
+  #define LED1_PIN 26
+#elif CONFIG_IDF_TARGET_ESP32C3
+  #define LED0_PIN 6
+  #define LED1_PIN 7
+#else
+  #error "Alvo não previsto: escolha pinos de LED válidos para este chip"
+#endif
 
 static const int      PROFUNDIDADE_FILA = 16;
 static const uint32_t RELATO_MS         = 10000;
@@ -114,12 +123,22 @@ void setup() {
   receptorIniciar(&estado);
 
   WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);
+  esp_wifi_set_channel(CANAL_ESPNOW, WIFI_SECOND_CHAN_NONE);
 
   char banner[256];
   montarBanner(banner, sizeof(banner), PAPEL_RECEPTOR,
                WiFi.macAddress().c_str(), esp_random());
   Serial.print(banner);
   Serial.println("  copie o MAC acima para MAC_RECEPTOR em lib/config_rede.h");
+
+  uint8_t canalAtual = 0;
+  wifi_second_chan_t canalSecundario = WIFI_SECOND_CHAN_NONE;
+  esp_wifi_get_channel(&canalAtual, &canalSecundario);
+  wifi_ps_type_t modoPs = WIFI_PS_NONE;
+  esp_wifi_get_ps(&modoPs);
+  Serial.printf("  radio ..: canal=%u ps=%d  leds=GPIO%d/GPIO%d\n", canalAtual,
+                (int)modoPs, LED0_PIN, LED1_PIN);
 
   Serial.printf("  emissor aceito: %02X:%02X:%02X:%02X:%02X:%02X\n",
                 MAC_EMISSOR[0], MAC_EMISSOR[1], MAC_EMISSOR[2], MAC_EMISSOR[3],
@@ -166,7 +185,7 @@ void setup() {
   esp_now_peer_info_t peerEmissor = {};
   memcpy(peerEmissor.peer_addr, MAC_EMISSOR, 6);
   memcpy(peerEmissor.lmk, LMK, TAM_CHAVE);
-  peerEmissor.channel = 0;
+  peerEmissor.channel = CANAL_ESPNOW;
   peerEmissor.encrypt = true;
 
   if (esp_now_add_peer(&peerEmissor) != ESP_OK) {

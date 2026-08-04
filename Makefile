@@ -15,11 +15,22 @@ FONTES := lib/debounce.cpp \
 
 CABECALHOS := lib/seguranca.h lib/identidade.h lib/debounce.h lib/receptor_logic.h lib/emissor_logic.h lib/protocolo.h test/framework.h
 
-PORTA_EMISSOR  ?= /dev/ttyACM0
-PORTA_RECEPTOR ?= /dev/ttyACM1
-FQBN           := esp32:esp32:esp32c3
-# O C3 precisa de CDCOnBoot=cdc, senão o Serial sai pela UART0 e não pela USB.
-OPCOES_PLACA   := --board-options CDCOnBoot=cdc
+# As duas pontas são placas diferentes, então tudo aqui é por papel.
+#
+# EMISSOR  = ESP32 DevKit clássico. Serial pela ponte USB-UART (CP2102/CH340),
+#            aparece como /dev/ttyUSB*. Não tem menu CDCOnBoot: passar essa
+#            opção para ele dá erro.
+# RECEPTOR = ESP32-C3. Serial pela USB nativa, aparece como /dev/ttyACM*, e
+#            exige CDCOnBoot=cdc — sem isso o Serial sai pela UART0 e não
+#            aparece nada na USB.
+PORTA_EMISSOR   ?= /dev/ttyUSB0
+PORTA_RECEPTOR  ?= /dev/ttyACM0
+FQBN_EMISSOR    ?= esp32:esp32:esp32
+FQBN_RECEPTOR   ?= esp32:esp32:esp32c3
+CHIP_EMISSOR    ?= esp32
+CHIP_RECEPTOR   ?= esp32c3
+OPCOES_EMISSOR  ?=
+OPCOES_RECEPTOR ?= --board-options CDCOnBoot=cdc
 
 .PHONY: test sketches chaves macs gravar smoke limpar
 
@@ -27,14 +38,29 @@ chaves:
 	@python3 ferramentas/gerar_chaves.py
 
 macs:
-	@python3 ferramentas/ler_macs.py --emissor $(PORTA_EMISSOR) --receptor $(PORTA_RECEPTOR)
+	@python3 ferramentas/ler_macs.py \
+	  --emissor $(PORTA_EMISSOR)   --chip-emissor $(CHIP_EMISSOR) \
+	  --receptor $(PORTA_RECEPTOR) --chip-receptor $(CHIP_RECEPTOR)
 
 gravar: sketches
-	arduino-cli compile --fqbn $(FQBN) $(OPCOES_PLACA) --upload --port $(PORTA_RECEPTOR) receptor
-	arduino-cli compile --fqbn $(FQBN) $(OPCOES_PLACA) --upload --port $(PORTA_EMISSOR) emissor
+	arduino-cli compile --fqbn $(FQBN_RECEPTOR) $(OPCOES_RECEPTOR) --upload --port $(PORTA_RECEPTOR) receptor
+	arduino-cli compile --fqbn $(FQBN_EMISSOR)  $(OPCOES_EMISSOR)  --upload --port $(PORTA_EMISSOR)  emissor
 
 smoke: sketches
-	@python3 ferramentas/smoketest.py --emissor $(PORTA_EMISSOR) --receptor $(PORTA_RECEPTOR)
+	@python3 ferramentas/smoketest.py \
+	  --emissor $(PORTA_EMISSOR)   --fqbn-emissor $(FQBN_EMISSOR) \
+	  --receptor $(PORTA_RECEPTOR) --fqbn-receptor $(FQBN_RECEPTOR) \
+	  --opcoes-receptor "$(OPCOES_RECEPTOR)"
+
+# Diagnóstico de RF puro, sem ESP-NOW: uma placa vira AP, a outra escaneia.
+# Foi o que provou que o par de C3 anterior não se enxergava.
+teste-rf:
+	arduino-cli compile --fqbn $(FQBN_EMISSOR) $(OPCOES_EMISSOR) \
+	  --build-property build.defines=-DDINO_AP \
+	  --upload --port $(PORTA_EMISSOR) ferramentas/teste_rf
+	arduino-cli compile --fqbn $(FQBN_RECEPTOR) $(OPCOES_RECEPTOR) \
+	  --upload --port $(PORTA_RECEPTOR) ferramentas/teste_rf
+	@echo "abra os dois seriais: o scanner deve listar DINO-TESTE-RF com RSSI"
 
 test: build/testes
 	@./build/testes

@@ -18,6 +18,7 @@
 #include <WiFi.h>
 #include <esp_now.h>
 #include <esp_random.h>
+#include <esp_wifi.h>
 #include <inttypes.h>
 
 #include <atomic>
@@ -30,8 +31,20 @@
 #include "protocolo.h"
 #include "seguranca.h"
 
-#define BOTAO0_PIN 4
-#define BOTAO1_PIN 5
+// Pinos por família de chip: o mesmo sketch compila no DevKit clássico e no
+// C3, e trocar de placa não exige editar código.
+#if CONFIG_IDF_TARGET_ESP32
+  // No ESP32 clássico o GPIO5 é strapping (precisa estar alto no boot) e o
+  // GPIO4 fica no barramento de JTAG. GPIO32/33 não são nada disso e têm
+  // pull-up interno — é onde os botões devem ir.
+  #define BOTAO0_PIN 32
+  #define BOTAO1_PIN 33
+#elif CONFIG_IDF_TARGET_ESP32C3
+  #define BOTAO0_PIN 4
+  #define BOTAO1_PIN 5
+#else
+  #error "Alvo não previsto: escolha pinos de botão válidos para este chip"
+#endif
 
 static const uint32_t DEBOUNCE_MS    = 40;
 static const int      RAJADA_QTD     = 3;   // reenvios por evento
@@ -174,6 +187,11 @@ void setup() {
   }
 
   WiFi.mode(WIFI_STA);
+  // Sem associação a um AP, o modem sleep não tem beacon para sincronizar.
+  WiFi.setSleep(false);
+  // "Canal atual" (channel = 0) não garante que os dois rádios fiquem no mesmo
+  // canal quando nenhum dos dois está associado. Fixa explicitamente.
+  esp_wifi_set_channel(CANAL_ESPNOW, WIFI_SECOND_CHAN_NONE);
 
   // Depois do WiFi ligado o RNG por hardware tem entropia de verdade.
   bootId = esp_random();
@@ -182,6 +200,14 @@ void setup() {
   montarBanner(banner, sizeof(banner), PAPEL_EMISSOR,
                WiFi.macAddress().c_str(), bootId);
   Serial.print(banner);
+
+  uint8_t canalAtual = 0;
+  wifi_second_chan_t canalSecundario = WIFI_SECOND_CHAN_NONE;
+  esp_wifi_get_channel(&canalAtual, &canalSecundario);
+  wifi_ps_type_t modoPs = WIFI_PS_NONE;
+  esp_wifi_get_ps(&modoPs);
+  Serial.printf("  radio ..: canal=%u ps=%d  botoes=GPIO%d/GPIO%d\n", canalAtual,
+                (int)modoPs, BOTAO0_PIN, BOTAO1_PIN);
 
   Serial.printf("  receptor alvo: %02X:%02X:%02X:%02X:%02X:%02X\n",
                 MAC_RECEPTOR[0], MAC_RECEPTOR[1], MAC_RECEPTOR[2], MAC_RECEPTOR[3],
@@ -231,7 +257,7 @@ void setup() {
   esp_now_peer_info_t peerInfo = {};
   memcpy(peerInfo.peer_addr, MAC_RECEPTOR, 6);
   memcpy(peerInfo.lmk, LMK, TAM_CHAVE);
-  peerInfo.channel = 0;
+  peerInfo.channel = CANAL_ESPNOW;
   peerInfo.encrypt = true;
 
   if (esp_now_add_peer(&peerInfo) != ESP_OK) {
