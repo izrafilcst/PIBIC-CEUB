@@ -19,13 +19,28 @@ test/         testes de host (g++), rodam sem hardware
 emissor/      sketch do emissor (FreeRTOS) + links para lib/
 receptor/     sketch do receptor (FreeRTOS) + links para lib/
 ferramentas/  scripts de bancada (macs, chaves, smoke, teste de RF)
-docs/         registros de ensaio (diagnóstico de RF do par C3)
+docs/         documentação do PIBIC e registros de ensaio
 legado/       versão original dos sketches, antes da reestruturação
 esquematico.html  diagrama de ligação (desatualizado: ver pendências)
 ```
 
 `lib/` é a única fonte da verdade. As pastas de sketch contêm symlinks porque a
 IDE do Arduino só compila arquivos que estejam dentro da pasta do sketch.
+
+## Documentação
+
+Documentos em padrão ABNT, um por camada. São HTML autocontidos com CSS de
+impressão (margens 3/2/3/2 cm, Times 12, entrelinha 1,5): abra no navegador e
+use *Imprimir → Salvar como PDF* para gerar a versão de entrega.
+
+| Documento | Conteúdo |
+|---|---|
+| [`docs/hardware.html`](docs/hardware.html) | Esquemáticos em SVG vetorial (simbologia IEC), dimensionamento de `pull-up` e limitador, escolha de pinos, ensaios de RF e funcional |
+| [`docs/software.html`](docs/software.html) | Arquitetura FreeRTOS, protocolo, criptografia, trechos comentados do código, verificação |
+| [`docs/diagnostico-rf-esp32c3.md`](docs/diagnostico-rf-esp32c3.md) | Registro bruto da depuração do par de C3 |
+
+A folha de rosto dos dois documentos tem lacunas `[preencher]` para autor e
+orientador(a).
 
 ## Comandos
 
