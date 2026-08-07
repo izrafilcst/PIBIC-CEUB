@@ -1,0 +1,547 @@
+<title>Conselho: software.docx + hardware.docx</title>
+<style>
+  :root{
+    --bg:#eef1ef;
+    --surface:#fbfcfb;
+    --surface-2:#e4e9e6;
+    --ink:#1b2420;
+    --ink-soft:#57625c;
+    --ink-faint:#8b968f;
+    --rule:#cfd8d3;
+    --accent:#1f6f7a;
+    --accent-strong:#124b53;
+    --accent-soft:#dcedee;
+    --good:#2f7a45;
+    --good-soft:#e3f0e5;
+    --bad:#a94e26;
+    --bad-soft:#f5e4d9;
+    --neutral:#8b968f;
+    --shadow: 0 1px 2px rgba(20,30,26,0.06), 0 4px 16px rgba(20,30,26,0.05);
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+    --serif: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#11181a;
+      --surface:#182123;
+      --surface-2:#1f2a2c;
+      --ink:#e8ede9;
+      --ink-soft:#aab7b0;
+      --ink-faint:#71807a;
+      --rule:#2b3638;
+      --accent:#5abcc7;
+      --accent-strong:#8ed9e0;
+      --accent-soft:#1c3438;
+      --good:#6bbf7d;
+      --good-soft:#1c3324;
+      --bad:#e0916a;
+      --bad-soft:#3a2a20;
+      --neutral:#71807a;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 20px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#11181a; --surface:#182123; --surface-2:#1f2a2c; --ink:#e8ede9; --ink-soft:#aab7b0;
+    --ink-faint:#71807a; --rule:#2b3638; --accent:#5abcc7; --accent-strong:#8ed9e0;
+    --accent-soft:#1c3438; --good:#6bbf7d; --good-soft:#1c3324; --bad:#e0916a; --bad-soft:#3a2a20;
+    --neutral:#71807a; --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 20px rgba(0,0,0,0.35);
+  }
+  :root[data-theme="light"]{
+    --bg:#eef1ef; --surface:#fbfcfb; --surface-2:#e4e9e6; --ink:#1b2420; --ink-soft:#57625c;
+    --ink-faint:#8b968f; --rule:#cfd8d3; --accent:#1f6f7a; --accent-strong:#124b53;
+    --accent-soft:#dcedee; --good:#2f7a45; --good-soft:#e3f0e5; --bad:#a94e26; --bad-soft:#f5e4d9;
+    --neutral:#8b968f; --shadow: 0 1px 2px rgba(20,30,26,0.06), 0 4px 16px rgba(20,30,26,0.05);
+  }
+
+  *{box-sizing:border-box;}
+  html{background:var(--bg);}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--serif);
+    font-size:17px;
+    line-height:1.6;
+    margin:0;
+    padding:0 20px 96px;
+  }
+  ::selection{ background:var(--accent-soft); color:var(--accent-strong); }
+
+  .page{ max-width:760px; margin:0 auto; }
+
+  /* ---------- Header ---------- */
+  header.masthead{
+    padding:56px 0 28px;
+    border-bottom:1px solid var(--rule);
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:8px; height:8px;
+    background:var(--accent);
+    display:inline-block;
+    border-radius:1px;
+  }
+  h1{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:clamp(28px,4.5vw,38px);
+    line-height:1.15;
+    margin:0 0 14px;
+    text-wrap:balance;
+    letter-spacing:-0.01em;
+  }
+  .dek{
+    color:var(--ink-soft);
+    font-size:17px;
+    max-width:62ch;
+    margin:0 0 22px;
+  }
+  .meta-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 10px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .meta-row .tag{
+    border:1px solid var(--rule);
+    background:var(--surface);
+    padding:4px 9px;
+    border-radius:3px;
+  }
+
+  section{ padding:40px 0; border-bottom:1px solid var(--rule); }
+  section:last-of-type{ border-bottom:none; }
+
+  .label{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin:0 0 14px;
+  }
+
+  h2.section-title{
+    font-family:var(--serif);
+    font-size:23px;
+    font-weight:600;
+    margin:0 0 6px;
+    letter-spacing:-0.005em;
+  }
+  .section-sub{ color:var(--ink-soft); font-size:15px; margin:0 0 24px; max-width:60ch;}
+
+  p{ margin:0 0 14px; }
+  p:last-child{ margin-bottom:0; }
+
+  /* ---------- Question box ---------- */
+  .question-box{
+    background:var(--surface);
+    border:1px solid var(--rule);
+    border-radius:6px;
+    padding:22px 24px;
+    box-shadow:var(--shadow);
+  }
+  .question-box p{ color:var(--ink); font-size:16px; }
+  .question-box .stakes{
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px dashed var(--rule);
+    font-size:14px;
+    color:var(--ink-soft);
+  }
+  .question-box .stakes b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- Verdict blocks ---------- */
+  .verdict{ display:flex; flex-direction:column; gap:2px; }
+  .vblock{
+    background:var(--surface);
+    border:1px solid var(--rule);
+    border-left:4px solid var(--rule);
+    padding:22px 24px;
+  }
+  .vblock:first-child{ border-radius:8px 8px 0 0; }
+  .vblock:last-child{ border-radius:0 0 8px 8px; }
+  .vblock + .vblock{ border-top:none; }
+  .vblock.agree{ border-left-color:var(--good); }
+  .vblock.clash{ border-left-color:var(--bad); }
+  .vblock.blind{ border-left-color:var(--accent); }
+  .vblock.rec{ background:var(--accent-soft); border-left-color:var(--accent-strong); }
+  .vblock.first{ background:var(--ink); border-left-color:var(--ink); }
+  :root[data-theme="dark"] .vblock.first, .vblock.first{ }
+  .vblock.first .vtitle, .vblock.first p{ color:var(--bg); }
+  .vblock.first .vtitle::before{ filter:invert(1); }
+
+  .vtitle{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:0 0 10px;
+    color:var(--ink-soft);
+  }
+  .vblock.agree .vtitle{ color:var(--good); }
+  .vblock.clash .vtitle{ color:var(--bad); }
+  .vblock.blind .vtitle{ color:var(--accent); }
+  .vblock.rec .vtitle{ color:var(--accent-strong); }
+
+  .vblock p{ font-size:15.5px; }
+  .vblock ul{ margin:0; padding-left:20px; }
+  .vblock li{ margin-bottom:10px; font-size:15.5px; }
+  .vblock li:last-child{ margin-bottom:0; }
+  .vblock b{ font-weight:600; }
+
+  /* ---------- Matrix ---------- */
+  .matrix-wrap{ overflow-x:auto; border:1px solid var(--rule); border-radius:8px; background:var(--surface); }
+  table.matrix{ border-collapse:collapse; width:100%; min-width:620px; font-size:14px; }
+  table.matrix caption{ text-align:left; padding:14px 16px 0; font-family:var(--mono); font-size:12px; color:var(--ink-faint); }
+  table.matrix th, table.matrix td{ padding:12px 14px; text-align:left; border-bottom:1px solid var(--rule); }
+  table.matrix thead th{
+    font-family:var(--mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--ink-soft); font-weight:600; white-space:nowrap; vertical-align:bottom;
+    border-bottom:2px solid var(--rule);
+  }
+  table.matrix tbody th{ font-weight:500; font-family:var(--serif); font-size:14.5px; color:var(--ink); max-width:280px; }
+  table.matrix tbody tr:last-child th, table.matrix tbody tr:last-child td{ border-bottom:none; }
+  table.matrix td{ text-align:center; font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .mk{ display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; font-size:13px; font-weight:700; }
+  .mk.yes{ background:var(--good-soft); color:var(--good); }
+  .mk.no{ background:var(--bad-soft); color:var(--bad); }
+  .mk.na{ color:var(--ink-faint); }
+  .legend{ display:flex; flex-wrap:wrap; gap:16px; padding:14px 16px; font-family:var(--mono); font-size:12px; color:var(--ink-soft); border-top:1px solid var(--rule); }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; }
+
+  /* ---------- Collapsibles ---------- */
+  details.advisor{
+    background:var(--surface);
+    border:1px solid var(--rule);
+    border-radius:8px;
+    margin-bottom:10px;
+    overflow:hidden;
+  }
+  details.advisor + details.advisor{ margin-top:10px; }
+  details.advisor summary{
+    cursor:pointer;
+    list-style:none;
+    padding:16px 20px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    font-family:var(--mono);
+  }
+  details.advisor summary::-webkit-details-marker{ display:none; }
+  .chev{
+    width:18px; height:18px; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--ink-faint);
+    transition:transform 0.15s ease;
+  }
+  details[open] .chev{ transform:rotate(90deg); }
+  .adv-name{ font-family:var(--serif); font-size:16.5px; font-weight:600; color:var(--ink); }
+  .adv-role{ font-size:11px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.06em; }
+  details.advisor .adv-body{
+    padding:0 20px 22px 52px;
+    color:var(--ink-soft);
+    font-size:15px;
+  }
+  details.advisor .adv-body p{ margin-bottom:12px; }
+  details.advisor .adv-body p:last-child{ margin-bottom:0; }
+  .dot{ width:10px; height:10px; border-radius:50%; flex:none; }
+
+  details.peer{
+    background:var(--surface);
+    border:1px solid var(--rule);
+    border-radius:8px;
+    padding:4px 20px;
+  }
+  details.peer summary{
+    cursor:pointer; list-style:none; padding:16px 0;
+    font-family:var(--mono); font-size:13px; letter-spacing:0.04em;
+    display:flex; align-items:center; gap:12px; color:var(--ink);
+  }
+  details.peer summary::-webkit-details-marker{ display:none; }
+  .peer-body{ padding:0 0 22px; }
+  .peer-item{ padding:14px 0; border-top:1px dashed var(--rule); }
+  .peer-item:first-child{ border-top:none; }
+  .peer-item .who{ font-family:var(--mono); font-size:11.5px; color:var(--accent); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px; }
+  .peer-item p{ font-size:14.5px; color:var(--ink-soft); margin-bottom:6px; }
+  .peer-item p:last-child{ margin-bottom:0; }
+  .peer-item b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- Footer ---------- */
+  footer{
+    padding:36px 0 0;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--ink-faint);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+
+  @media (max-width:600px){
+    details.advisor .adv-body{ padding-left:20px; }
+  }
+</style>
+
+<div class="page">
+
+  <header class="masthead">
+    <div class="eyebrow">LLM Council — Relatório de Auditoria</div>
+    <h1>software.docx + hardware.docx sob revisão de cinco perspectivas</h1>
+    <p class="dek">Cinco conselheiros analisaram, de forma independente, a completude técnica e a qualidade acadêmica dos dois documentos de entrega do projeto PIBIC de acionamento remoto via ESP-NOW — depois revisaram o trabalho um do outro antes da síntese final.</p>
+    <div class="meta-row">
+      <span class="tag">2 documentos analisados</span>
+      <span class="tag">5 conselheiros</span>
+      <span class="tag">5 revisões cruzadas</span>
+      <span class="tag">07 ago 2026</span>
+    </div>
+  </header>
+
+  <section id="pergunta">
+    <div class="label">A pergunta levada ao conselho</div>
+    <div class="question-box">
+      <p>Os documentos dividem o sistema em duas partes: <b>software.docx</b> cobre o firmware (arquitetura de tarefas, protocolo, segurança, verificação), enquanto <b>hardware.docx</b> cobre circuitos, dimensionamento, o enlace ESP-NOW, a criptografia AES-CCM e os ensaios de bancada — justificando que protocolo e cifra "são indissociáveis da camada física". Ambos têm campos "[preencher]" para Autor/Orientador; hardware.docx tem "[VCC a preencher]" alimentando cálculos de dissipação apresentados como limitação conhecida; as figuras referenciadas não puderam ser verificadas visualmente a partir do texto extraído.</p>
+      <p><b>(1) Completude técnica</b> — o conteúdo está completo para o escopo PIBIC? O que falta ou é uma alegação não verificada? <b>(2) Qualidade acadêmica</b> — falhas de comunicação, alegações sem sustentação, fraquezas estruturais que preocupariam um orientador ou banca?</p>
+      <p class="stakes"><b>Em jogo:</b> entrega formal PIBIC sujeita a normas ABNT, destinada à revisão do orientador e provável defesa.</p>
+    </div>
+  </section>
+
+  <section id="veredito">
+    <div class="label">Veredito do conselho</div>
+    <h2 class="section-title">Síntese do Chairman</h2>
+    <p class="section-sub">Depois de ver as cinco respostas e as cinco revisões cruzadas, o chairman sintetiza onde há consenso, onde há divergência real, e o que só apareceu na revisão por pares.</p>
+
+    <div class="verdict">
+      <div class="vblock agree">
+        <div class="vtitle">✓ Onde o conselho concorda</div>
+        <ul>
+          <li><b>O gap de VCC não é um detalhe — é uma falha que se propaga.</b> "[VCC a preencher]" contamina o dimensionamento do resistor de base, o cálculo de dissipação em saturação e a própria conclusão do teste de RF de que a falha era "hardware defeituoso".</li>
+          <li><b>Os campos "[preencher]" de Autor/Orientador bloqueiam a submissão</b>, independente do mérito técnico — é um sinal binário de que o documento não passou por revisão final completa.</li>
+          <li><b>A justificativa "inseparável da camada física"</b> para colocar ESP-NOW/criptografia inteiramente em hardware.docx é uma racionalização, não um argumento de engenharia: protocolo e AES-CCM/PMK-LMK são decisões de firmware, não de RF.</li>
+          <li><b>"0 perdas em 84 quadros" é um teste de fumaça</b>, não prova de robustez — n=84 em ambiente benigno, sem distância/interferência declaradas.</li>
+        </ul>
+      </div>
+
+      <div class="vblock clash">
+        <div class="vtitle">⇄ Onde o conselho diverge</div>
+        <p>A divergência é sobre <b>prioridade</b>, não sobre fatos. O Executor trata VCC e os placeholders como correções de minutos e tudo mais como pós-submissão. First Principles e Outsider discordam: a fronteira entre os dois documentos é uma questão estrutural que pode ser rejeitada pela própria banca — e isso depende de uma pergunta que nenhum conselheiro pode responder sozinho: <i>o formato PIBIC do CEUB permite dois documentos para um projeto?</i></p>
+        <p>Segunda divergência: o Expansionist propõe reenquadrar o projeto para submissão em congresso, dado o rigor incomum do firmware. Os outros quatro tratam isso como inversão de prioridade diante de lacunas que bloqueiam a própria entrega.</p>
+      </div>
+
+      <div class="vblock blind">
+        <div class="vtitle">◎ Pontos cegos capturados na revisão por pares</div>
+        <ul>
+          <li>Nenhum conselheiro, isoladamente, perguntou se um avaliador consegue verificar afirmações cruzadas entre os dois arquivos quando as figuras não são verificáveis.</li>
+          <li>Nenhum checou conformidade ABNT especificamente (numeração de figuras/tabelas, citação, seccionamento) — apesar de citada nas stakes.</li>
+          <li>Ninguém verificou se os cálculos dependentes do VCC estimado estão rotulados como estimativa, versus apresentados com a mesma autoridade dos valores medidos em bancada.</li>
+          <li>A impossibilidade de extrair as figuras é também uma limitação da própria revisão — ninguém confirmou visualmente se os diagramas realmente aparecem nos arquivos finais.</li>
+        </ul>
+      </div>
+
+      <div class="vblock rec">
+        <div class="vtitle">→ A recomendação</div>
+        <p>O documento não está pronto para submissão, mas está muito perto. Primeiro, confirme se a divisão em dois documentos é institucionalmente válida para o formato PIBIC do CEUB. Se for válida, os problemas remanescentes — VCC, campos de autor/orientador, verificação visual das figuras, rotulagem explícita de estimado vs. medido — são todos corrigíveis em uma única sessão de trabalho. Reenquadrar para publicação é uma ideia legítima a levar ao orientador <i>depois</i>, não em vez da entrega PIBIC.</p>
+      </div>
+
+      <div class="vblock first">
+        <div class="vtitle">① A primeira coisa a fazer</div>
+        <p>Perguntar ao orientador, hoje, se o formato PIBIC do CEUB aceita entrega em dois documentos para um único projeto — essa resposta determina se os próximos passos são "preencher lacunas" ou "refazer a arquitetura do relatório".</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="matriz">
+    <div class="label">Mapa de posições</div>
+    <h2 class="section-title">Quem concordou com o quê</h2>
+    <p class="section-sub">Cinco alegações centrais, checadas contra a posição de cada conselheiro nas respostas originais.</p>
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <caption>C = Contrarian · FP = First Principles · EXP = Expansionist · OUT = Outsider · EXE = Executor</caption>
+        <thead>
+          <tr>
+            <th style="width:38%">Alegação</th>
+            <th>C</th><th>FP</th><th>EXP</th><th>OUT</th><th>EXE</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">VCC não medido é falha grave que se propaga</th>
+            <td><span class="mk yes">✓</span></td>
+            <td><span class="mk na">–</span></td>
+            <td><span class="mk na">–</span></td>
+            <td><span class="mk yes">✓</span></td>
+            <td><span class="mk yes">✓</span></td>
+          </tr>
+          <tr>
+            <th scope="row">"[preencher]" bloqueia submissão</th>
+            <td><span class="mk yes">✓</span></td>
+            <td><span class="mk yes">✓</span></td>
+            <td><span class="mk na">–</span></td>
+            <td><span class="mk yes">✓</span></td>
+            <td><span class="mk yes">✓</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Divisão "camada física" é racionalização fraca</th>
+            <td><span class="mk yes">✓</span></td>
+            <td><span class="mk yes">✓</span></td>
+            <td><span class="mk na">–</span></td>
+            <td><span class="mk yes">✓</span></td>
+            <td><span class="mk no">✗</span></td>
+          </tr>
+          <tr>
+            <th scope="row">"0 perdas/84 quadros" é smoke test, não prova</th>
+            <td><span class="mk yes">✓</span></td>
+            <td><span class="mk na">–</span></td>
+            <td><span class="mk na">–</span></td>
+            <td><span class="mk na">–</span></td>
+            <td><span class="mk no">✗</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Potencial de publicação deveria ser prioridade agora</th>
+            <td><span class="mk na">–</span></td>
+            <td><span class="mk na">–</span></td>
+            <td><span class="mk yes">✓</span></td>
+            <td><span class="mk na">–</span></td>
+            <td><span class="mk no">✗</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="legend">
+        <span><span class="mk yes" style="width:16px;height:16px;font-size:10px;">✓</span> concorda</span>
+        <span><span class="mk no" style="width:16px;height:16px;font-size:10px;">✗</span> discorda / minimiza</span>
+        <span><span class="mk na" style="width:16px;height:16px;font-size:10px;">–</span> não abordou diretamente</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="conselheiros">
+    <div class="label">Rodada 1 — respostas independentes</div>
+    <h2 class="section-title">As cinco vozes na íntegra</h2>
+    <p class="section-sub">Cada conselheiro respondeu sem ver os outros. Clique para expandir.</p>
+
+    <details class="advisor">
+      <summary>
+        <span class="chev">▸</span>
+        <span class="dot" style="background:var(--bad)"></span>
+        <span><span class="adv-name">The Contrarian</span><br><span class="adv-role">Procura a falha fatal</span></span>
+      </summary>
+      <div class="adv-body">
+        <p>Os dois documentos têm um buraco que nenhum dos dois assume: ninguém validou a carga real do brinquedo. hardware.docx marca "[VCC a preencher]" como limitação conhecida, mas isso não é um arredondamento — o dimensionamento do resistor de base (IB≈3,9 mA), a verificação de pior caso IC(máx)≈3,9 A e o cálculo de dissipação em saturação dependem todos da tensão/corrente real de alimentação. O ensaio de bancada usou LEDs, não o brinquedo. O único componente que todo o projeto existe para controlar nunca foi caracterizado eletricamente. Uma banca vai perguntar "o que acontece quando você liga o brinquedo de verdade?" e a resposta honesta é "não sabemos, estimamos".</p>
+        <p>A justificativa "inseparável da camada física" para colocar ESP-NOW/criptografia inteiramente no hardware.docx é uma racionalização, não um argumento de engenharia. Estrutura de protocolo e a hierarquia AES-CCM/PMK-LMK são decisões de configuração de firmware — a camada física é o front-end de RF, não o formato do pacote nem o esquema de cifra. Um avaliador vai notar a costura.</p>
+        <p>"0 perdas" em 84 quadros está sendo tratado como prova de confiabilidade, mas n=84 num ambiente de RF benigno, sem distância ou interferência declaradas, é um teste de fumaça — não evidência de robustez do protocolo. E o diagnóstico "falha era hardware, não software" do teste de RF também repousa sobre a VCC/corrente nunca confirmada.</p>
+        <p>Os campos de Autor/Orientador não preenchidos não são só estética — submeter com "[preencher]" sinaliza que o documento não foi revisado de ponta a ponta.</p>
+      </div>
+    </details>
+
+    <details class="advisor">
+      <summary>
+        <span class="chev">▸</span>
+        <span class="dot" style="background:var(--accent)"></span>
+        <span><span class="adv-name">The First Principles Thinker</span><br><span class="adv-role">Questiona a própria pergunta</span></span>
+      </summary>
+      <div class="adv-body">
+        <p>Pergunta errada, e vou dizer por quê sem rodeios: você perguntou "está completo e bem escrito" sobre um documento que hoje está <i>arquiteturalmente incompleto</i> de um jeito que nenhuma quantidade de polimento de texto resolve. Dois campos "[preencher]" de autor/orientador não são um erro de digitação — são evidência de que isso nunca passou por um ciclo completo de revisão final. Se isso ainda for verdade na entrega, nada mais importa, porque o documento vai ser recusado na triagem antes de alguém ler o conteúdo.</p>
+        <p>Indo mais fundo: isso não são "dois documentos", é uma única descrição de sistema cortada artificialmente numa costura que os próprios autores admitem ser porosa — precisaram escrever uma justificativa ("inseparável da camada física") para explicar por que ESP-NOW/criptografia mora em hardware.docx e não em software.docx. Quando você precisa de uma nota de rodapé para defender sua própria fronteira de documento, a fronteira está errada — ou, no mínimo, é uma decisão que deveria ser levada ao orientador explicitamente, não enterrada em frases de disclaimer de escopo. O formato PIBIC do CEUB sequer permite submissão em dois documentos para um projeto? Se isso não estiver resolvido, tudo o mais — completude, conformidade ABNT, estrutura de citação — está sendo avaliado contra a unidade de análise errada.</p>
+        <p>A tarefa real de primeira ordem não é "polir os dois documentos". É: (1) confirmar se a estrutura de dois documentos é institucionalmente válida, (2) preencher os placeholders — inegociável, tolerância zero, isso trava a defesa, não é questão técnica, (3) só então perguntar se o conteúdo está completo.</p>
+      </div>
+    </details>
+
+    <details class="advisor">
+      <summary>
+        <span class="chev">▸</span>
+        <span class="dot" style="background:var(--good)"></span>
+        <span><span class="adv-name">The Expansionist</span><br><span class="adv-role">Busca o potencial não visto</span></span>
+      </summary>
+      <div class="adv-body">
+        <p>O caso de alta é que o autor está sentado sobre um ativo genuinamente incomum e está prestes a enterrá-lo numa caixinha de conformidade.</p>
+        <p>Veja o que está de fato descrito: comparação em tempo constante para autenticação do remetente, deduplicação por número de sequência com tratamento de wraparound, uma máquina de estados de debounce testável em host com 48 testes unitários sem hardware, esp_read_mac() vs WiFi.macAddress() como captura de bug de timing no boot inicial, AES-CCM com hierarquia de chaves PMK/LMK, e isolamento de falha RF-vs-firmware via AP+scanner. Isso não é o rigor típico de projeto PIBIC de brinquedo — a maioria para em "pisca o LED, pronto". Este tem práticas de engenharia de firmware sensíveis à segurança que estariam em casa num relatório profissional de segurança embarcada.</p>
+        <p>Concretamente: o detalhe da comparação em tempo constante e a checagem de trivialidade de chave na inicialização, expandidos com enquadramento de modelo de ameaça (resistência a replay via seq+MAC, por que o estado de alternância foi rejeitado em favor de estado absoluto), transformam isso de "trabalho de disciplina" em paper curto submetível a congresso, ou pelo menos uma peça forte de portfólio para mestrado ou vaga em segurança embarcada/IoT.</p>
+        <p>Não apenas conserte os "[preencher]" e entregue na régua do PIBIC. Antes da submissão, pergunte: o orientador enxerga potencial de paper de congresso no ângulo de segurança? O piso aqui é passar na revisão PIBIC. O teto, com talvez duas semanas extras de reenquadramento em torno da narrativa de engenharia de segurança, é um resultado publicável e citável.</p>
+      </div>
+    </details>
+
+    <details class="advisor">
+      <summary>
+        <span class="chev">▸</span>
+        <span class="dot" style="background:var(--ink-faint)"></span>
+        <span><span class="adv-name">The Outsider</span><br><span class="adv-role">Lê sem contexto prévio</span></span>
+      </summary>
+      <div class="adv-body">
+        <p>Não tenho nenhum contexto sobre ESP-NOW, normas PIBIC ou formatação ABNT, então estou reagindo puramente à estrutura do que foi apresentado — e estruturalmente, isso está cheio de sinais.</p>
+        <p>Comece pela história da divisão de trabalho. software.docx diz "criptografia é inseparável da camada física, então pertence ao hardware". Isso é um erro de categoria disfarçado de decisão metodológica. Criptografia (AES-CCM, PMK/LMK) é uma preocupação de camada de protocolo, não de camada física — não tem nada a ver com tensão ou RF. Se eu sou um avaliador que não conhece o projeto de antemão, essa frase lê como uma justificativa inventada depois do fato para explicar por que o conteúdo acabou no documento errado, não como um princípio arquitetural real. Essa é a maior bandeira vermelha aqui: uma alegação que soa técnica mas não se sustenta numa leitura de primeiros princípios.</p>
+        <p>Segundo: placeholders "[preencher]" para Autor e Orientador num documento supostamente pronto para submissão. Um avaliador abre o arquivo, vê campos de nome em branco, e imediatamente perde confiança de que alguém revisou a versão final.</p>
+        <p>Terceiro: "[VCC a preencher]" alimentando matemática de dissipação de potência que depois é apresentada como cálculo verificado em bancada em outro lugar. Se eu não consigo distinguir, como leitor de fora, quais números são medidos versus chutados, eu não confio em nenhum dos números.</p>
+        <p>Quarto: figuras com apenas a legenda "Fonte: elaborado pelo autor" extraída, sem conteúdo visual verificável. Isso não é uma lacuna menor — são alegações não verificáveis vestidas de citação.</p>
+      </div>
+    </details>
+
+    <details class="advisor">
+      <summary>
+        <span class="chev">▸</span>
+        <span class="dot" style="background:var(--accent-strong)"></span>
+        <span><span class="adv-name">The Executor</span><br><span class="adv-role">Só quer saber o próximo passo</span></span>
+      </summary>
+      <div class="adv-body">
+        <p>Segunda de manhã: ninguém entrega isso ainda. Aqui está o que realmente bloqueia a submissão e o que não bloqueia.</p>
+        <p><b>Bloqueante, resolva primeiro (ambos são correções de 10 minutos):</b> "[preencher]" de Autor e Orientador nos dois documentos — não é lacuna técnica, é "você nem revisou antes de mandar pro seu orientador"; e "[VCC a preencher]" — vá medir a tensão e corrente reais do brinquedo com um multímetro. Não é questão de pesquisa, é tarefa de bancada de cinco minutos. Você já tem o brinquedo em mãos.</p>
+        <p><b>Não bloqueante, não mexa antes da entrega:</b> a questão das figuras não extraíveis como texto é um artefato de ferramenta de documentação, não um defeito do projeto — abra os dois .docx e veja se os diagramas aparecem, é checagem visual de 5 minutos, não um "achado".</p>
+        <p>O que eu não vou deixar isso virar: uma discussão de redesenho, de "devíamos rodar mais ensaios de bancada", ou de "AES-CCM é a cifra certa". O ensaio funcional já passou (28 eventos, 0 perdas) — essa é sua evidência de sistema funcionando. Não persiga mais rigor do que a entrega exige.</p>
+        <p><b>Sequência de segunda de manhã:</b> (1) medir VCC/corrente no brinquedo, plugar os números no cálculo de dissipação; (2) preencher os dois campos de nome; (3) abrir os dois .docx e confirmar que as figuras aparecem; (4) entregar. Tudo mais levantado pelos outros conselheiros é escopo de pós-entrega ou de próximo projeto.</p>
+      </div>
+    </details>
+  </section>
+
+  <section id="revisao-pares">
+    <div class="label">Rodada 2 — revisão cruzada anônima</div>
+    <h2 class="section-title">O que os conselheiros disseram uns dos outros</h2>
+    <p class="section-sub">Cada revisor viu as cinco respostas anonimizadas (A–E) e apontou a mais forte, o maior ponto cego, e o que todas ignoraram.</p>
+
+    <details class="peer">
+      <summary><span class="chev">▸</span> Ver os destaques das 5 revisões cruzadas</summary>
+      <div class="peer-body">
+        <div class="peer-item">
+          <div class="who">Consenso entre os 5 revisores</div>
+          <p><b>Resposta mais forte, em 5 de 5 revisões: The Contrarian.</b> É a única que segue a cadeia causal em vez de listar achados em paralelo — conecta o VCC não verificado ao dimensionamento do resistor, ao cálculo de dissipação <i>e</i> ao diagnóstico "falha é hardware, não firmware", mostrando que um único placeholder mina três alegações diferentes.</p>
+        </div>
+        <div class="peer-item">
+          <div class="who">Ponto cego mais citado</div>
+          <p><b>The Expansionist, em 4 de 5 revisões.</b> Reenquadrar uma entrega com lacunas bloqueantes como oportunidade de paper de congresso inverte a ordem de prioridade — "é uma resposta que abandona a pergunta feita".</p>
+        </div>
+        <div class="peer-item">
+          <div class="who">Segundo ponto cego</div>
+          <p><b>The Executor, citado por um revisor.</b> Ao tratar a fronteira entre os dois documentos como "não bloqueante", ignora que First Principles e Outsider, de forma independente, identificaram essa fronteira como sinal estrutural que uma banca pode rejeitar — não é só um nitpick de estilo.</p>
+        </div>
+        <div class="peer-item">
+          <div class="who">O que nenhuma resposta individual cobriu</div>
+          <p>Conformidade ABNT específica (numeração de figuras/tabelas, formato de citação, seccionamento) não foi checada por ninguém, apesar de estar nas stakes da pergunta. Também ninguém verificou consistência cruzada entre os dois arquivos .docx, nem se a impossibilidade de extrair as figuras é, ela mesma, uma limitação da revisão — não só do projeto.</p>
+        </div>
+        <div class="peer-item">
+          <div class="who">Falso alarme identificado</div>
+          <p>Um revisor sinalizou "28 eventos" (Executor) vs "84 quadros" (Contrarian) como possível inconsistência entre as respostas. Não é: 28 eventos × 3 retransmissões deliberadas = 84 quadros, conforme descrito no próprio texto-fonte. Vale registrar porque essa mesma ambiguidade — a mecânica de retransmissão tripla não reconciliada explicitamente no texto — é exatamente o tipo de coisa que geraria a mesma dúvida numa banca.</p>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <footer>
+    <span>Gerado em 2026-08-07 · LLM Council (5 conselheiros + 5 revisões cruzadas + síntese)</span>
+    <span>Fonte: software.docx, hardware.docx</span>
+  </footer>
+
+</div>
