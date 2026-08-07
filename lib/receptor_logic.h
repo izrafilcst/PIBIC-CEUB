@@ -14,9 +14,9 @@ struct EstadoReceptor {
 };
 
 struct Decisao {
-  bool    aceitar;   // false = pacote descartado, não mexer no LED
-  uint8_t canal;     // índice do LED, válido só quando aceitar
-  uint8_t nivelLed;  // 1 = aceso, 0 = apagado
+  bool    aceitar;    // false = pacote descartado, não mexer na saída
+  uint8_t canal;      // índice do modo do brinquedo, válido só quando aceitar
+  uint8_t nivelModo;  // 1 = modo ligado, 0 = modo desligado
 };
 
 void receptorIniciar(EstadoReceptor *e);

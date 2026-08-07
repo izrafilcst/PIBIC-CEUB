@@ -9,6 +9,6 @@
 typedef struct __attribute__((packed)) {
   uint32_t bootId;  // sorteado a cada boot do emissor, invalida seq antiga
   uint8_t  botao;   // 0 ou 1
-  uint8_t  estado;  // 0 = apagado, 1 = aceso
+  uint8_t  estado;  // 0 = modo desligado, 1 = modo ligado
   uint16_t seq;     // sequência por canal, detecta repetição da rajada
 } pacote_t;

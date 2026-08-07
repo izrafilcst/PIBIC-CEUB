@@ -1,9 +1,13 @@
-// RECEPTOR — 2 LEDs independentes via ESP-NOW, arquitetura FreeRTOS.
+// RECEPTOR — 2 modos independentes do brinquedo via ESP-NOW, FreeRTOS.
+//
+// Cada saída comanda a base de um TIP122 em chave de lado baixo, que alimenta
+// um dos dois modos do brinquedo. O pino não alimenta a carga: só injeta a
+// corrente de base. Ver docs/hardware.html para o dimensionamento.
 //
 // O callback do ESP-NOW roda no contexto da task de WiFi: ele apenas copia o
 // quadro para uma fila e retorna. Toda a decisão (deduplicação por sequência,
-// detecção de reboot do emissor) e o acionamento dos LEDs acontecem na
-// tarefaLeds, fora do caminho crítico do rádio.
+// detecção de reboot do emissor) e o acionamento das saídas acontecem na
+// tarefaModos, fora do caminho crítico do rádio.
 //
 // A lógica de decisão vive em receptor_logic.cpp, sem dependência de Arduino,
 // e é coberta por testes de host (`make test` na raiz do repositório).
@@ -28,20 +32,22 @@
 #include "seguranca.h"
 
 // Pinos por família de chip, para o mesmo sketch servir nas duas placas.
+// No ESP32 clássico a faixa GPIO6..GPIO11 é reservada à flash SPI, daí os
+// pinos serem outros lá — a numeração não é intercambiável entre famílias.
 #if CONFIG_IDF_TARGET_ESP32
-  #define LED0_PIN 25
-  #define LED1_PIN 26
+  #define MODO0_PIN 25
+  #define MODO1_PIN 26
 #elif CONFIG_IDF_TARGET_ESP32C3
-  #define LED0_PIN 6
-  #define LED1_PIN 7
+  #define MODO0_PIN 6
+  #define MODO1_PIN 7
 #else
-  #error "Alvo não previsto: escolha pinos de LED válidos para este chip"
+  #error "Alvo não previsto: escolha pinos de saída válidos para este chip"
 #endif
 
 static const int      PROFUNDIDADE_FILA = 16;
 static const uint32_t RELATO_MS         = 10000;
 
-static const uint8_t ledPinos[NUM_CANAIS] = {LED0_PIN, LED1_PIN};
+static const uint8_t pinosModo[NUM_CANAIS] = {MODO0_PIN, MODO1_PIN};
 
 static EstadoReceptor estado;
 static QueueHandle_t  filaQuadros;
@@ -88,7 +94,7 @@ static void onRecebimento(const uint8_t *mac, const uint8_t *dados,
   }
 }
 
-static void tarefaLeds(void *arg) {
+static void tarefaModos(void *arg) {
   (void)arg;
   QuadroRecebido q;
 
@@ -98,8 +104,9 @@ static void tarefaLeds(void *arg) {
     const Decisao d = receptorProcessar(&estado, q.dados, q.tamanho);
     if (!d.aceitar) continue;
 
-    digitalWrite(ledPinos[d.canal], d.nivelLed ? HIGH : LOW);
-    Serial.printf("led%u -> %s\n", d.canal, d.nivelLed ? "aceso" : "apagado");
+    digitalWrite(pinosModo[d.canal], d.nivelModo ? HIGH : LOW);
+    Serial.printf("modo%u -> %s\n", d.canal,
+                  d.nivelModo ? "ligado" : "desligado");
   }
 }
 
@@ -117,9 +124,12 @@ static void tarefaDiagnostico(void *arg) {
 void setup() {
   Serial.begin(115200);
 
+  // Nível baixo antes de tudo: base sem corrente, TIP122 cortado, brinquedo
+  // desligado. Até aqui os pinos estavam em alta impedância e os resistores
+  // internos de base do Darlington é que seguravam o transistor no corte.
   for (uint8_t i = 0; i < NUM_CANAIS; i++) {
-    pinMode(ledPinos[i], OUTPUT);
-    digitalWrite(ledPinos[i], LOW);
+    pinMode(pinosModo[i], OUTPUT);
+    digitalWrite(pinosModo[i], LOW);
   }
   receptorIniciar(&estado);
 
@@ -151,8 +161,8 @@ void setup() {
   esp_wifi_get_channel(&canalAtual, &canalSecundario);
   wifi_ps_type_t modoPs = WIFI_PS_NONE;
   esp_wifi_get_ps(&modoPs);
-  Serial.printf("  radio ..: canal=%u ps=%d  leds=GPIO%d/GPIO%d\n", canalAtual,
-                (int)modoPs, LED0_PIN, LED1_PIN);
+  Serial.printf("  radio ..: canal=%u ps=%d  saidas=GPIO%d/GPIO%d\n", canalAtual,
+                (int)modoPs, MODO0_PIN, MODO1_PIN);
 
   Serial.printf("  emissor aceito: %02X:%02X:%02X:%02X:%02X:%02X\n",
                 MAC_EMISSOR[0], MAC_EMISSOR[1], MAC_EMISSOR[2], MAC_EMISSOR[3],
@@ -206,7 +216,7 @@ void setup() {
   }
   Serial.println("  criptografia ESP-NOW: ativa (AES-CCM)");
 
-  xTaskCreate(tarefaLeds,        "leds", 4096, NULL, 3, NULL);
+  xTaskCreate(tarefaModos,       "modos", 4096, NULL, 3, NULL);
   xTaskCreate(tarefaDiagnostico, "diag", 3072, NULL, 1, NULL);
 }
 

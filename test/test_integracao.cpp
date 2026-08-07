@@ -1,5 +1,5 @@
 // Emissor e receptor conversando através da camada pura: um press vira pacote,
-// o pacote é repetido pela rajada e o receptor decide o nível do LED.
+// o pacote é repetido pela rajada e o receptor decide o nível da saída.
 #include "debounce.h"
 #include "emissor_logic.h"
 #include "framework.h"
@@ -16,13 +16,13 @@ struct Bancada {
   EstadoReceptor receptor;
   uint32_t       bootId;
   uint32_t       relogio;
-  int            nivelLed[NUM_CANAIS];
+  int            nivelModo[NUM_CANAIS];
   int            acionamentosDeLed;
 
   void ligar(uint32_t boot) {
     for (int i = 0; i < NUM_CANAIS; i++) {
       canalIniciar(&canais[i]);
-      nivelLed[i] = 0;
+      nivelModo[i] = 0;
     }
     receptorIniciar(&receptor);
     bootId            = boot;
@@ -41,7 +41,7 @@ struct Bancada {
       Decisao d = receptorProcessar(&receptor, (const uint8_t *)&p,
                                     (int)sizeof(p));
       if (!d.aceitar) continue;
-      nivelLed[d.canal] = d.nivelLed;
+      nivelModo[d.canal] = d.nivelModo;
       acionamentosDeLed++;
     }
   }
@@ -64,17 +64,17 @@ struct Bancada {
 
 }  // namespace
 
-TESTE(um_clique_acende_o_led_correspondente) {
+TESTE(um_clique_liga_o_modo_correspondente) {
   Bancada b;
   b.ligar(0x11111111u);
 
   b.clicar(0);
 
-  VERIFICA_IGUAL(b.nivelLed[0], 1);
-  VERIFICA_IGUAL(b.nivelLed[1], 0);
+  VERIFICA_IGUAL(b.nivelModo[0], 1);
+  VERIFICA_IGUAL(b.nivelModo[1], 0);
 }
 
-TESTE(a_rajada_aciona_o_led_uma_unica_vez) {
+TESTE(a_rajada_aciona_o_modo_uma_unica_vez) {
   Bancada b;
   b.ligar(0x11111111u);
 
@@ -90,7 +90,7 @@ TESTE(dois_cliques_acendem_e_apagam) {
   b.clicar(0);
   b.clicar(0);
 
-  VERIFICA_IGUAL(b.nivelLed[0], 0);
+  VERIFICA_IGUAL(b.nivelModo[0], 0);
   VERIFICA_IGUAL(b.acionamentosDeLed, 2);
 }
 
@@ -102,11 +102,11 @@ TESTE(os_dois_canais_nao_interferem) {
   b.clicar(1);
   b.clicar(1);
 
-  VERIFICA_IGUAL(b.nivelLed[0], 1);
-  VERIFICA_IGUAL(b.nivelLed[1], 0);
+  VERIFICA_IGUAL(b.nivelModo[0], 1);
+  VERIFICA_IGUAL(b.nivelModo[1], 0);
 }
 
-TESTE(emissor_reiniciado_continua_controlando_o_led) {
+TESTE(emissor_reiniciado_continua_controlando_o_modo) {
   Bancada b;
   b.ligar(0x11111111u);
 

@@ -45,8 +45,8 @@ Decisao receptorProcessar(EstadoReceptor *e, const uint8_t *dados,
   e->primeiraVez[pacote.botao] = false;
   e->ultimaSeq[pacote.botao]   = pacote.seq;
 
-  d.aceitar  = true;
-  d.canal    = pacote.botao;
-  d.nivelLed = pacote.estado ? 1 : 0;
+  d.aceitar   = true;
+  d.canal     = pacote.botao;
+  d.nivelModo = pacote.estado ? 1 : 0;
   return d;
 }

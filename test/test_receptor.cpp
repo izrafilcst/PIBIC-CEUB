@@ -26,7 +26,7 @@ TESTE(primeiro_pacote_do_canal_e_sempre_aceito) {
 
   VERIFICA(d.aceitar);
   VERIFICA_IGUAL(d.canal, 0);
-  VERIFICA_IGUAL(d.nivelLed, 1);
+  VERIFICA_IGUAL(d.nivelModo, 1);
 }
 
 TESTE(pacote_repetido_da_rajada_e_ignorado) {
@@ -57,7 +57,7 @@ TESTE(sequencia_avancando_e_aceita) {
   Decisao nova = entregar(&e, 0, 0, 11);
 
   VERIFICA(nova.aceitar);
-  VERIFICA_IGUAL(nova.nivelLed, 0);
+  VERIFICA_IGUAL(nova.nivelModo, 0);
 }
 
 TESTE(wraparound_da_sequencia_e_aceito) {
@@ -89,7 +89,7 @@ TESTE(pacote_de_tamanho_errado_e_rejeitado) {
   VERIFICA(!d.aceitar);
 }
 
-TESTE(estado_zero_apaga_o_led) {
+TESTE(estado_zero_desliga_o_modo) {
   EstadoReceptor e;
   receptorIniciar(&e);
 
@@ -98,7 +98,7 @@ TESTE(estado_zero_apaga_o_led) {
 
   VERIFICA(apagar.aceitar);
   VERIFICA_IGUAL(apagar.canal, 1);
-  VERIFICA_IGUAL(apagar.nivelLed, 0);
+  VERIFICA_IGUAL(apagar.nivelModo, 0);
 }
 
 TESTE(reboot_do_emissor_volta_a_ser_aceito) {

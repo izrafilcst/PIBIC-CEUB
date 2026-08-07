@@ -129,8 +129,8 @@ def main() -> int:
     print("\n== comunicação ponta a ponta ==")
     verifica("[smoke] press sintetico" in emi, "emissor gerou eventos")
     verifica("botao=" in emi, "emissor transmitiu")
-    verifica("led0 -> aceso" in rec, "receptor acendeu o LED0")
-    verifica("led1 -> aceso" in rec, "receptor acendeu o LED1")
+    verifica("modo0 -> ligado" in rec, "receptor acionou o modo 0")
+    verifica("modo1 -> ligado" in rec, "receptor acionou o modo 1")
     # 4 eventos sintéticos x 3 reenvios da rajada = 12 quadros unicast. Em
     # hardware saudável, todos voltam com ACK. Conferir o último relatório em
     # vez de só procurar texto.
@@ -139,7 +139,7 @@ def main() -> int:
         else (0, -1)
     if args.receptor_sem_tx:
         # O ACK sai do receptor: sem TX nele, nunca chega. A entrega em si
-        # (led0/led1 acesos, checado acima) é o que importa aqui.
+        # (modo0/modo1 acionados, checado acima) é o que importa aqui.
         print(f"  (info) confirmados={confirmados} sem_confirmacao={sem_ack} "
               f"-- ACK ignorado, receptor sem TX")
     else:
