@@ -1,0 +1,2030 @@
+<meta charset="utf-8">
+<title>Acionamento remoto de dois modos de um brinquedo por ESP-NOW</title>
+<style>
+  @page { size: A4; margin: 3cm 2cm 2cm 3cm; }
+
+  :root { --tinta: #000; --papel: #fff; }
+
+  html { background: #e9e9e9; }
+
+  body {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12pt;
+    line-height: 1.5;
+    text-align: justify;
+    color: var(--tinta);
+    background: var(--papel);
+    max-width: 17cm;
+    margin: 0 auto;
+    padding: 3cm 2cm;
+    hyphens: auto;
+  }
+
+  /* ---- Folha de rosto ---- */
+  .rosto { text-align: center; margin-bottom: 3em; page-break-after: always; }
+  .rosto .instituicao { text-transform: uppercase; font-weight: bold; }
+  .rosto .titulo {
+    text-transform: uppercase; font-weight: bold; margin: 6em 0 0.5em;
+  }
+  .rosto .subtitulo { margin-bottom: 6em; }
+  .rosto .local { margin-top: 6em; }
+  .lacuna { color: #444; font-style: italic; }
+
+  /* ---- Numeração progressiva (NBR 6024) ---- */
+  body { counter-reset: secao figura quadro tabela; }
+  h1 {
+    counter-increment: secao; counter-reset: subsecao;
+    font-size: 12pt; font-weight: bold; text-transform: uppercase;
+    text-align: left; margin: 2em 0 1em; page-break-after: avoid;
+  }
+  h1::before { content: counter(secao) " "; }
+  h1.sem-numero::before { content: none; }
+  h1.sem-numero { text-align: center; }
+  h2 {
+    counter-increment: subsecao; counter-reset: subsubsecao;
+    font-size: 12pt; font-weight: bold; text-align: left;
+    margin: 1.5em 0 0.8em; page-break-after: avoid;
+  }
+  h2::before { content: counter(secao) "." counter(subsecao) " "; }
+  h3 {
+    counter-increment: subsubsecao;
+    font-size: 12pt; font-weight: normal; font-style: italic;
+    text-align: left; margin: 1.2em 0 0.6em; page-break-after: avoid;
+  }
+  h3::before {
+    content: counter(secao) "." counter(subsecao) "." counter(subsubsecao) " ";
+  }
+
+  p { margin: 0 0 0.8em; text-indent: 1.25cm; }
+  p.sem-recuo, .figura p, .fonte, .legenda { text-indent: 0; }
+
+  ul, ol { margin: 0 0 0.8em 1.25cm; }
+  li { margin-bottom: 0.3em; }
+
+  /* ---- Figuras, quadros e tabelas ---- */
+  figure { margin: 1.5em 0; page-break-inside: avoid; }
+  .legenda {
+    font-size: 10pt; line-height: 1.2; text-align: center;
+    margin-bottom: 0.4em;
+  }
+  .fonte {
+    font-size: 10pt; line-height: 1.2; text-align: center;
+    margin-top: 0.4em;
+  }
+  figure.figura { counter-increment: figura; }
+  figure.figura .legenda::before { content: "Figura " counter(figura) " – "; }
+  figure.quadro { counter-increment: quadro; }
+  figure.quadro .legenda::before { content: "Quadro " counter(quadro) " – "; }
+  figure.tabela { counter-increment: tabela; }
+  figure.tabela .legenda::before { content: "Tabela " counter(tabela) " – "; }
+
+  .desenho { text-align: center; }
+  .desenho svg { max-width: 100%; height: auto; }
+
+  pre {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 10pt; line-height: 1.25;
+    border: 1px solid #000; padding: 0.6em 0.8em;
+    margin: 0; overflow-x: auto; text-align: left;
+    white-space: pre; tab-size: 2;
+  }
+  code { font-family: "Courier New", Courier, monospace; font-size: 11pt; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 11pt; }
+  figure.tabela table th, figure.tabela table td {
+    border-top: 1px solid #000; border-bottom: 1px solid #000;
+    padding: 0.3em 0.5em; text-align: left; vertical-align: top;
+  }
+  figure.quadro table th, figure.quadro table td {
+    border: 1px solid #000; padding: 0.3em 0.5em;
+    text-align: left; vertical-align: top;
+  }
+  th { font-weight: bold; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .nota {
+    font-size: 10pt; line-height: 1.2; text-indent: 0;
+    margin: 0.6em 0 0; text-align: left;
+  }
+
+  .referencias p {
+    text-indent: 0; margin-bottom: 1em; line-height: 1.0;
+    text-align: left;
+  }
+
+  @media print {
+    html { background: #fff; }
+    body { max-width: none; margin: 0; padding: 0; }
+    pre { border: 1px solid #000; }
+  }
+</style>
+
+<div class="rosto">
+  <p class="sem-recuo instituicao">Centro Universitário de Brasília — CEUB</p>
+  <p class="sem-recuo">Programa Institucional de Bolsas de Iniciação Científica — PIBIC</p>
+
+  <p class="sem-recuo titulo">Acionamento remoto de dois modos de um brinquedo por ESP-NOW</p>
+  <p class="sem-recuo subtitulo">Arquitetura de firmware, hardware de potência e protocolo de comunicação cifrada</p>
+
+  <p class="sem-recuo">Autor: <span class="lacuna">[preencher]</span></p>
+  <p class="sem-recuo">Orientador(a): <span class="lacuna">[preencher]</span></p>
+
+  <p class="sem-recuo local">Brasília<br>2026</p>
+</div>
+
+<h1 class="sem-numero">Resumo</h1>
+
+<p class="sem-recuo">Este trabalho descreve o projeto, a implementação e a
+verificação de um sistema embarcado de duas unidades para acionamento remoto
+de dois modos de funcionamento de um brinquedo, por meio do protocolo
+ESP-NOW. Uma unidade emissora (ESP32 DevKit V1), equipada com dois botões,
+transmite comandos cifrados a uma unidade receptora (ESP32-C3) embarcada no
+brinquedo, que decifra os quadros recebidos e aciona, por meio de
+transistores Darlington TIP122 em configuração de chave de lado baixo, a
+alimentação de cada modo. O firmware, escrito em C++ sobre o núcleo Arduino
+para ESP32 e o sistema operacional de tempo real FreeRTOS, separa a lógica de
+decisão — máquina de estados de debounce, deduplicação por número de
+sequência com tratamento de retorno ao zero (wraparound), verificação de
+remetente em tempo constante — das chamadas de plataforma, o que permite
+testá-la inteiramente na máquina de desenvolvimento, sem hardware. A
+comunicação emprega a cifragem nativa do ESP-NOW (AES-CCM, com hierarquia de
+chaves PMK/LMK), transmite estado absoluto em vez de comandos de alternância,
+e repete cada evento três vezes para tolerar perdas ocasionais de quadro. O
+sistema foi verificado por uma bateria de quarenta e oito testes de host, por
+um ensaio automatizado que grava e reinicia as duas unidades, e por ensaios
+de bancada de radiofrequência, continuidade de pinos e acionamento funcional,
+que não registraram perda de eventos. Permanecem como limitações a
+caracterização elétrica da carga do brinquedo, cuja tensão e corrente de
+alimentação ainda não foram medidas, e o levantamento quantitativo do alcance
+do enlace de rádio, ambos discutidos como trabalhos futuros.</p>
+
+<p class="sem-recuo"><strong>Palavras-chave</strong>: Sistemas embarcados.
+ESP-NOW. FreeRTOS. Criptografia AES-CCM. Acionamento remoto.</p>
+
+<h1 class="sem-numero">Sumário</h1>
+<div class="sumario-campo"></div>
+
+<h1>Introdução</h1>
+
+<p>Este documento descreve, de forma unificada, o sistema de acionamento
+remoto desenvolvido no projeto: a arquitetura de firmware das duas unidades,
+os circuitos de entrada e de saída em potência, o dimensionamento dos
+componentes, o enlace de rádio e o mecanismo de cifragem empregados, e os
+ensaios realizados — de host e de bancada — para verificar a montagem. Optou-se
+por um único documento, e não por um par separado de relatórios de hardware e
+de software: o protocolo de aplicação e a criptografia do enlace são
+configurados inteiramente pelo firmware, de modo que descrevê-los junto da
+camada elétrica exigiria repetir o mesmo conteúdo em dois lugares ou fixar uma
+fronteira artificial entre "o que é rádio" e "o que é código" — os dois nunca
+deixam de ser a mesma decisão de projeto.</p>
+
+<p>O firmware é escrito em C++ sobre o núcleo Arduino para ESP32, que por sua
+vez se apoia no ESP-IDF e no sistema operacional de tempo real FreeRTOS. A
+compilação foi verificada com o núcleo <code>esp32:esp32</code> na versão
+3.0.7.</p>
+
+<h2>Objetivo geral</h2>
+
+<p>Projetar, implementar e verificar um sistema de acionamento remoto
+sem fio de dois modos de funcionamento de um brinquedo, por meio de
+comunicação ponto a ponto cifrada entre dois microcontroladores ESP32, sem
+depender de infraestrutura de rede intermediária.</p>
+
+<h2>Objetivos específicos</h2>
+
+<ul>
+  <li>Dimensionar e validar o estágio de potência de saída, baseado em
+      transistores Darlington operando como chave de lado baixo, capaz de
+      comandar a carga do brinquedo a partir dos níveis lógicos de um
+      microcontrolador.</li>
+  <li>Especificar um protocolo de aplicação sobre o ESP-NOW que seja
+      tolerante a perda ocasional de quadro e a reinicializações de qualquer
+      uma das duas unidades, sem exigir confirmação de entrega em nível de
+      aplicação.</li>
+  <li>Empregar o mecanismo de cifragem nativo do ESP-NOW (AES-CCM) para
+      confidencialidade e autenticidade do enlace, complementado por
+      verificação explícita de remetente contra quadros de origem
+      desconhecida.</li>
+  <li>Estruturar o firmware de modo que a lógica de decisão — filtragem de
+      repique mecânico, deduplicação de quadros, verificação de segurança —
+      seja verificável por testes automatizados executados na máquina de
+      desenvolvimento, sem depender de hardware.</li>
+  <li>Verificar experimentalmente, por ensaios de bancada, que a cadeia
+      completa — do acionamento do botão ao chaveamento de potência —
+      funciona sem perda de eventos nas condições ensaiadas.</li>
+</ul>
+
+<h2>Justificativa</h2>
+
+<p>Sistemas embarcados de baixo custo para acionamento remoto sem fio
+enfrentam um conjunto recorrente de problemas de engenharia — perda
+ocasional de pacote em enlaces de rádio não confiáveis, necessidade de
+recuperação automática após reinicialização de qualquer uma das partes, e a
+exigência de que a camada de segurança não dependa de infraestrutura externa
+(ponto de acesso, servidor de autenticação) — que se repetem em aplicações de
+automação residencial, controle industrial de curto alcance e dispositivos
+de assistência controlados à distância. O ESP-NOW, por dispensar associação a
+ponto de acesso e reduzir a latência de comunicação a poucos milissegundos,
+é uma escolha atrativa para esse tipo de aplicação, mas sua adoção prática
+levanta decisões de protocolo — transmitir estado ou comando, como
+deduplicar sem exigir confirmação, como impedir que um quadro de terceiro
+seja aceito mesmo com a cifra nativa habilitada — que não estão resolvidas
+pela documentação de fabricante e que este trabalho examina e documenta com
+base na implementação e nos ensaios realizados.</p>
+
+<h2>Referencial teórico</h2>
+
+<p>O ESP-NOW é descrito e caracterizado experimentalmente por
+Urazayev <em>et al.</em> (2023), que reportam ganhos de alcance e de consumo
+de energia em ambiente interno frente ao Wi-Fi convencional, faixa de valores
+de referência para o desempenho do protocolo em condições comparáveis às
+deste projeto. Sua superfície de segurança foi objeto de pesquisa recente:
+Nozomi Networks (2024) identificou e divulgou responsavelmente uma
+vulnerabilidade de repetição de quadros no ESP-NOW (CVE-2024-42483),
+decorrente de o cache de deduplicação do próprio protocolo não distinguir
+tipos de mensagem — achado diretamente relevante à discussão de alcance e
+limites da proteção deste projeto, adiante. Chatue <em>et al.</em> (2025)
+propõem e avaliam um esquema de reforço criptográfico sobre o ESP-NOW para
+redes de sensores, na mesma linha de generalizar a defesa além do que o
+protocolo nativo oferece.</p>
+
+<p>A cifragem empregada — AES em modo CCM (<em>Counter with CBC-MAC</em>) —
+é especificada formalmente por Whiting, Housley e Ferguson (2003) na RFC
+3610 e por Dworkin (2004) na publicação especial NIST SP 800-38C, que definem
+a combinação do modo contador para confidencialidade com o CBC-MAC para
+autenticidade adotada neste trabalho. A arquitetura de tarefas de tempo real,
+com prioridades fixas atribuídas de acordo com a urgência de cada
+responsabilidade — amostragem de entrada acima de transmissão, transmissão
+acima de diagnóstico —, segue o princípio de escalonamento por prioridade
+fixa formalizado por Liu e Layland (1973), ainda referência corrente para
+sistemas de tempo real de tarefa única em processador único, e discutido em
+aplicações FreeRTOS por Oliveira e Lima (2023), que avaliam escalonamento e
+economia de energia em sistemas embarcados de pequeno porte baseados nesse
+mesmo sistema operacional. A
+comparação de números de sequência com tratamento de retorno ao zero
+(<em>wraparound</em>) segue o mesmo princípio geral de aritmética modular
+formalizado pela RFC 1982 (Elz; Bush, 1996) para o mesmo problema em outros
+protocolos. O tratamento de repique mecânico por máquina de estados segue a
+prática consolidada descrita por Ganssle (2026) para debounce em sistemas
+embarcados.</p>
+
+<h2>Escopo</h2>
+
+<p>Descrevem-se aqui os elementos verificados experimentalmente. Os valores
+de tensão, corrente e resistência apresentados correspondem à montagem
+efetivamente ensaiada, e os resultados registrados na seção de ensaios foram
+obtidos com os instrumentos e sketches descritos no próprio documento. Onde um
+valor depende de uma medida ainda não realizada — notadamente a tensão e a
+corrente de alimentação do brinquedo —, isso é declarado explicitamente no
+texto, e o cálculo correspondente é identificado como estimativa, não como
+valor verificado.</p>
+
+<h1>Visão geral do sistema</h1>
+
+<p>O sistema é composto por duas unidades independentes, cada uma com
+alimentação própria, que se comunicam exclusivamente por radiofrequência. A
+unidade emissora converte o acionamento mecânico dos botões em quadros de
+rádio cifrados; a unidade receptora decifra os quadros recebidos e converte-os
+em níveis lógicos nos pinos que comandam a base dos transistores de
+potência.</p>
+
+<figure class="figura">
+  <p class="legenda">Diagrama de blocos do sistema</p>
+  <div class="desenho">
+    <svg viewBox="0 0 880 300" role="img"
+         aria-label="Diagrama de blocos: unidade emissora e unidade receptora ligadas por enlace ESP-NOW">
+      <g fill="none" stroke="#000" stroke-width="2">
+        <rect x="20" y="70" width="310" height="150" rx="4"/>
+        <rect x="550" y="70" width="310" height="150" rx="4"/>
+        <!-- enlace principal -->
+        <line x1="330" y1="145" x2="536" y2="145"/>
+        <polygon points="550,145 532,138 532,152" fill="#000" stroke="none"/>
+      </g>
+      <g font-family="Times New Roman, serif" text-anchor="middle">
+        <text x="175" y="105" font-size="17" font-weight="bold">Unidade emissora</text>
+        <text x="175" y="133" font-size="15">ESP32 DevKit V1</text>
+        <text x="175" y="160" font-size="15">2 botões — GPIO4 e GPIO5</text>
+        <text x="175" y="187" font-size="15">Serial: /dev/ttyUSB0</text>
+
+        <text x="705" y="105" font-size="17" font-weight="bold">Unidade receptora</text>
+        <text x="705" y="133" font-size="15">ESP32-C3 (embarcada no brinquedo)</text>
+        <text x="705" y="160" font-size="15">2 saídas de potência — GPIO6 e GPIO7</text>
+        <text x="705" y="187" font-size="15">Q1 e Q2: TIP122 — modos 1 e 2</text>
+
+        <text x="433" y="113" font-size="12">ESP-NOW · 2,4 GHz</text>
+        <text x="433" y="131" font-size="12">canal 1</text>
+        <text x="433" y="175" font-size="12">quadro unicast cifrado</text>
+        <text x="433" y="193" font-size="12">AES-CCM · 128 bits</text>
+      </g>
+    </svg>
+  </div>
+  <p class="fonte">Fonte: elaborado pelo autor (2026).</p>
+</figure>
+
+<p>As duas unidades empregam famílias distintas de microcontrolador, e a
+assimetria é deliberada. A unidade receptora precisa ser alojada dentro do
+próprio brinquedo, junto aos transistores de potência, onde o volume disponível
+é escasso: a ESP32-C3 é sensivelmente mais compacta, dispensa conversor
+USB-serial externo e consome menos, o que a torna adequada ao papel embarcado. A
+unidade emissora, ao contrário, permanece externa e sem restrição de espaço, o
+que permite empregar a ESP32 clássica, de pinagem mais larga e mais folgada para
+os botões e para eventual expansão do painel de comando. O ensaio de
+radiofrequência relatado adiante, na seção de verificação, foi o que
+efetivamente decidiu essa repartição de papéis entre as duas famílias.</p>
+
+<h1>Componentes</h1>
+
+<figure class="quadro">
+  <p class="legenda">Lista de materiais</p>
+  <table>
+    <tr>
+      <th>Ref.</th><th>Componente</th><th>Especificação</th><th>Qtd.</th><th>Unidade</th>
+    </tr>
+    <tr><td>A1</td><td>Placa de desenvolvimento</td><td>ESP32 DevKit V1 (ESP32-D0WDQ6, rev. v1.0)</td><td class="num">1</td><td>Emissora</td></tr>
+    <tr><td>A2</td><td>Placa de desenvolvimento</td><td>ESP32-C3 (rev. v0.4)</td><td class="num">1</td><td>Receptora</td></tr>
+    <tr><td>S1, S2</td><td>Botão de pressão</td><td>Táctil, contato normalmente aberto</td><td class="num">2</td><td>Emissora</td></tr>
+    <tr><td>Q1, Q2</td><td>Transistor Darlington NPN</td><td>TIP122, TO-220 (100 V, 5 A, <em>h</em><sub>FE</sub> ≥ 1000)</td><td class="num">2</td><td>Receptora</td></tr>
+    <tr><td>R<sub>B1</sub>, R<sub>B2</sub></td><td>Resistor</td><td>330 Ω, 1/4 W (limitador de base)</td><td class="num">2</td><td>Receptora</td></tr>
+    <tr><td>M1, M2</td><td>Carga: modo do brinquedo</td><td>Eletrônica do brinquedo, alimentada em <span class="lacuna">[V<sub>CC</sub> ainda não medido — ver seção de limitações]</span></td><td class="num">2</td><td>Receptora</td></tr>
+  </table>
+  <p class="fonte">Fonte: elaborado pelo autor (2026).</p>
+</figure>
+
+<p class="nota">O circuito de entrada não emprega resistores discretos: a
+polarização dos botões é obtida pelos resistores de <em>pull-up</em> integrados
+ao próprio microcontrolador, conforme detalhado na seção correspondente.</p>
+
+<h2>Unidade emissora</h2>
+
+<p>A placa ESP32 DevKit V1 emprega o SoC ESP32-D0WDQ6, de dois núcleos, com
+conversor USB-serial CP2102 integrado. Esse conversor faz a placa ser
+reconhecida pelo sistema operacional como dispositivo de porta serial genérico,
+em <code>/dev/ttyUSB0</code>. A alimentação e a comunicação de gravação
+compartilham o mesmo cabo USB.</p>
+
+<h2>Unidade receptora</h2>
+
+<p>A placa ESP32-C3 emprega núcleo RISC-V de 32 bits e dispõe de interface USB
+nativa, sem conversor externo. Em consequência, é enumerada como dispositivo de
+classe CDC, em <code>/dev/ttyACM0</code>. Essa diferença tem efeito direto sobre
+o processo de gravação, tratado na seção de compilação e gravação.</p>
+
+<h1>Circuito de entrada: botões</h1>
+
+<p>Cada botão é ligado em configuração <em>pull-up</em>: um resistor mantém o
+pino do microcontrolador em nível alto enquanto o botão está solto, e o
+fechamento do contato conecta o pino ao terra, levando-o a nível baixo. O
+acionamento é, portanto, detectado por borda de descida.</p>
+
+<p>A polarização é obtida pelos resistores integrados ao próprio
+microcontrolador, habilitados por <em>software</em> com o modo
+<code>INPUT_PULLUP</code>. O circuito externo reduz-se, assim, ao próprio botão
+ligando o pino ao terra, sem nenhum componente discreto. No esquemático, os
+elementos internos ao chip são representados em traço interrompido, para
+distingui-los da fiação que efetivamente se monta.</p>
+
+<figure class="figura">
+  <p class="legenda">Esquemático do circuito de entrada da unidade emissora</p>
+  <div class="desenho">
+    <svg viewBox="0 0 820 640" role="img"
+         aria-label="Esquemático: dois botões ligando os pinos GPIO4 e GPIO5 ao terra, com resistores de pull-up internos ao microcontrolador">
+      <g fill="none" stroke="#000" stroke-width="2" stroke-linecap="square">
+
+        <!-- ============ PLACA ============ -->
+        <rect x="500" y="60" width="270" height="510" rx="4"/>
+        <!-- pino GND (borda inferior) -->
+        <line x1="620" y1="570" x2="620" y2="600"/>
+        <line x1="596" y1="600" x2="644" y2="600"/>
+        <line x1="604" y1="610" x2="636" y2="610"/>
+        <line x1="612" y1="620" x2="628" y2="620"/>
+      </g>
+
+      <!-- pull-ups INTERNOS ao chip: tracejado -->
+      <g fill="none" stroke="#000" stroke-width="1.6" stroke-dasharray="6 4">
+        <line x1="520" y1="110" x2="755" y2="110"/>
+        <line x1="560" y1="110" x2="560" y2="125"/>
+        <rect x="548" y="125" width="24" height="60"/>
+        <line x1="560" y1="185" x2="560" y2="230"/>
+        <line x1="560" y1="230" x2="500" y2="230"/>
+        <line x1="740" y1="110" x2="740" y2="125"/>
+        <rect x="728" y="125" width="24" height="60"/>
+        <line x1="740" y1="185" x2="740" y2="440"/>
+        <line x1="740" y1="440" x2="500" y2="440"/>
+      </g>
+
+      <g fill="none" stroke="#000" stroke-width="2" stroke-linecap="square">
+        <!-- ============ RAMO 1: S1 -> GPIO4 ============ -->
+        <line x1="500" y1="230" x2="280" y2="230"/>
+        <line x1="280" y1="230" x2="280" y2="300"/>
+        <!-- S1: botoeira NA, terminais verticais separados -->
+        <circle cx="280" cy="300" r="4" fill="#000"/>
+        <circle cx="280" cy="350" r="4" fill="#000"/>
+        <line x1="266" y1="294" x2="266" y2="356"/>
+        <line x1="266" y1="325" x2="238" y2="325"/>
+        <line x1="238" y1="310" x2="238" y2="340"/>
+        <line x1="280" y1="350" x2="280" y2="372"/>
+        <!-- terra do ramo 1 -->
+        <line x1="256" y1="372" x2="304" y2="372"/>
+        <line x1="264" y1="382" x2="296" y2="382"/>
+        <line x1="272" y1="392" x2="288" y2="392"/>
+
+        <!-- ============ RAMO 2: S2 -> GPIO5 ============ -->
+        <line x1="500" y1="440" x2="150" y2="440"/>
+        <line x1="150" y1="440" x2="150" y2="490"/>
+        <circle cx="150" cy="490" r="4" fill="#000"/>
+        <circle cx="150" cy="540" r="4" fill="#000"/>
+        <line x1="136" y1="484" x2="136" y2="546"/>
+        <line x1="136" y1="515" x2="108" y2="515"/>
+        <line x1="108" y1="500" x2="108" y2="530"/>
+        <line x1="150" y1="540" x2="150" y2="562"/>
+        <line x1="126" y1="562" x2="174" y2="562"/>
+        <line x1="134" y1="572" x2="166" y2="572"/>
+        <line x1="142" y1="582" x2="158" y2="582"/>
+      </g>
+
+      <g font-family="Times New Roman, serif" font-size="16">
+        <text x="635" y="100" text-anchor="middle" font-size="14">3V3 interno</text>
+        <text x="580" y="163">≈45 kΩ</text>
+        <text x="720" y="163" text-anchor="end">≈45 kΩ</text>
+
+        <text x="514" y="222">GPIO4</text>
+        <text x="514" y="432">GPIO5</text>
+        <text x="620" y="558" text-anchor="middle">GND</text>
+
+        <text x="308" y="330">S1</text>
+        <text x="390" y="220" text-anchor="middle">botão 0</text>
+        <text x="178" y="520">S2</text>
+        <text x="330" y="430" text-anchor="middle">botão 1</text>
+
+        <text x="635" y="300" text-anchor="middle" font-size="18" font-weight="bold">ESP32 DevKit V1</text>
+        <text x="635" y="326" text-anchor="middle" font-size="15">(ESP32-D0WDQ6)</text>
+        <text x="635" y="352" text-anchor="middle" font-size="15">unidade emissora</text>
+        <text x="635" y="392" text-anchor="middle" font-size="13">tracejado: interno ao chip</text>
+      </g>
+    </svg>
+  </div>
+  <p class="fonte">Fonte: elaborado pelo autor (2026).</p>
+</figure>
+
+<h2>Polarização por <em>pull-up</em> interno</h2>
+
+<p>O ESP32 integra, em cada pino de propósito geral, um resistor de
+<em>pull-up</em> de aproximadamente 45 kΩ, cuja conexão é comandada por
+<em>software</em>. Empregá-lo dispensa componentes discretos no circuito de
+entrada, reduzindo a montagem ao botão e a dois condutores.</p>
+
+<p>Com o botão solto, esse resistor conduz apenas a corrente de fuga da entrada,
+da ordem de nanoampères, e a queda de tensão sobre ele é desprezível: o pino
+enxerga praticamente os 3,3 V da alimentação interna. Com o botão pressionado, o
+resistor fica submetido à tensão plena, e a corrente drenada para o terra é dada
+pela lei de Ohm:</p>
+
+<p class="sem-recuo" style="text-align:center">
+<em>I</em> = <em>V</em> / <em>R</em> = 3,3 V / 45 kΩ ≈ 73 µA
+</p>
+
+<p>A corrente é irrisória, e a dissipação correspondente, da ordem de 0,24 mW,
+não representa qualquer solicitação térmica. O compromisso desta escolha está na
+impedância do nó: 45 kΩ constituem impedância consideravelmente maior que a de
+um resistor externo de 10 kΩ, o que torna o condutor mais suscetível a captar
+ruído por acoplamento capacitivo.</p>
+
+<p>Na montagem ensaiada, com condutores curtos de protoboard, essa
+suscetibilidade não se manifestou: o ensaio funcional não registrou acionamento
+espúrio algum. Para instalações em que o botão fique distante da placa, ou em
+ambiente eletricamente ruidoso, convém acrescentar um resistor externo de 10 kΩ
+entre o pino e a alimentação de 3,3 V. Os dois resistores se associam em
+paralelo, resultando em cerca de 8,2 kΩ, o que apenas reforça o nível alto em
+repouso — não há conflito elétrico, pois ambos atuam no mesmo sentido.</p>
+
+<p>Cabe registrar que a filtragem de repique é integralmente digital, executada
+em <em>firmware</em> por uma máquina de estados que exige estabilidade da leitura
+por 40 ms, descrita na seção de tratamento de acionamento mecânico. Não há,
+portanto, capacitor de filtro no circuito, e o valor do resistor de
+<em>pull-up</em> não participa de nenhuma constante de tempo de projeto.</p>
+
+<h2>Escolha dos pinos</h2>
+
+<p>Os botões ocupam os pinos GPIO4 e GPIO5. Ambos foram verificados quanto a
+funções especiais que pudessem interferir na inicialização da placa:</p>
+
+<ul>
+  <li><strong>GPIO4</strong> — pino de propósito geral, sem função de
+      <em>strapping</em> e fora do barramento JTAG, que no ESP32 clássico ocupa
+      os pinos GPIO12 a GPIO15.</li>
+  <li><strong>GPIO5</strong> — pino de <em>strapping</em>, amostrado no
+      instante do <em>reset</em> para selecionar a temporização do modo SDIO
+      escravo. Como o projeto não utiliza SDIO e a inicialização se dá a partir
+      da memória <em>flash</em> interna, esse nível não altera o processo de
+      partida.</li>
+</ul>
+
+<p>A adoção do <em>pull-up</em> interno impõe uma observação adicional quanto ao
+GPIO5. O resistor comandado por <em>software</em> só passa a atuar quando a
+função <code>pinMode</code> é executada, o que ocorre bem depois do
+<em>reset</em>; no intervalo entre a energização e esse instante, o nível do pino
+depende exclusivamente da configuração de fábrica do chip. No ESP32, o GPIO5 já
+possui <em>pull-up</em> habilitado por padrão após o <em>reset</em>, de modo que
+parte em nível alto e a amostragem de <em>strapping</em> lê o valor esperado
+mesmo antes de o <em>firmware</em> assumir o controle. Manter o botão pressionado
+durante a energização é, portanto, inofensivo.</p>
+
+<p>Foram deliberadamente evitados os pinos GPIO0, GPIO2 e GPIO15, cujo nível no
+<em>reset</em> seleciona o modo de partida, o GPIO12, que seleciona a tensão de
+operação da memória <em>flash</em>, os pinos GPIO1 e GPIO3, que constituem a
+UART0 usada para gravação e diagnóstico, e a faixa de GPIO6 a GPIO11, ligada
+internamente à memória <em>flash</em> SPI.</p>
+
+<h1>Circuito de saída: chaveamento de potência</h1>
+
+<p>Cada um dos dois modos de funcionamento do brinquedo é alimentado por um
+transistor Darlington NPN TIP122 operando como chave de lado baixo
+(<em>low-side switch</em>). O pino do microcontrolador não alimenta a carga: ele
+apenas injeta corrente na base do transistor, que por sua vez fecha o caminho
+entre o terminal negativo da carga e o terra. Assim, os poucos miliampères que o
+ESP32-C3 consegue fornecer comandam uma corrente de coletor ordens de grandeza
+maior, extraída diretamente da fonte do brinquedo.</p>
+
+<p>Os dois ramos são elétrica e logicamente independentes: GPIO6 comanda Q1, que
+alimenta o modo 1, e GPIO7 comanda Q2, que alimenta o modo 2. Não há
+intertravamento em <em>hardware</em> entre eles — os dois modos podem estar
+ativos simultaneamente, e a decisão de permitir ou não essa combinação cabe ao
+protocolo de aplicação, que transmite o estado absoluto de cada canal de forma
+independente (ver seção de limitações).</p>
+
+<figure class="figura">
+  <p class="legenda">Esquemático do circuito de saída da unidade receptora</p>
+  <div class="desenho">
+    <svg viewBox="0 0 760 600" role="img"
+         aria-label="Esquemático: dois transistores TIP122 em chave de lado baixo, com resistores de base de 330 ohms ligados aos pinos GPIO6 e GPIO7, alimentando os dois modos do brinquedo">
+      <g fill="none" stroke="#000" stroke-width="2" stroke-linecap="square">
+
+        <!-- ============ PLACA ============ -->
+        <rect x="40" y="100" width="250" height="400" rx="4"/>
+        <!-- pino GND (borda inferior) -->
+        <line x1="165" y1="500" x2="165" y2="530"/>
+        <line x1="141" y1="530" x2="189" y2="530"/>
+        <line x1="149" y1="540" x2="181" y2="540"/>
+        <line x1="157" y1="550" x2="173" y2="550"/>
+
+        <!-- ============ RAMO 1: GPIO6 -> Rb1 -> Q1 -> M1 ============ -->
+        <!-- alimentacao do brinquedo -->
+        <line x1="508" y1="40" x2="548" y2="40"/>
+        <line x1="528" y1="40" x2="528" y2="60"/>
+        <!-- carga: modo 1 -->
+        <rect x="496" y="60" width="64" height="40"/>
+        <!-- coletor -->
+        <line x1="528" y1="100" x2="528" y2="130"/>
+        <line x1="528" y1="130" x2="490" y2="162"/>
+        <!-- base: barra vertical -->
+        <line x1="490" y1="150" x2="490" y2="210"/>
+        <line x1="404" y1="180" x2="490" y2="180"/>
+        <!-- resistor de base -->
+        <rect x="340" y="168" width="64" height="24"/>
+        <line x1="290" y1="180" x2="340" y2="180"/>
+        <!-- emissor com seta -->
+        <line x1="490" y1="198" x2="528" y2="230"/>
+        <line x1="528" y1="230" x2="528" y2="258"/>
+        <!-- terra do ramo -->
+        <line x1="504" y1="258" x2="552" y2="258"/>
+        <line x1="512" y1="268" x2="544" y2="268"/>
+        <line x1="520" y1="278" x2="536" y2="278"/>
+
+        <!-- ============ RAMO 2: GPIO7 -> Rb2 -> Q2 -> M2 ============ -->
+        <line x1="508" y1="310" x2="548" y2="310"/>
+        <line x1="528" y1="310" x2="528" y2="330"/>
+        <rect x="496" y="330" width="64" height="40"/>
+        <line x1="528" y1="370" x2="528" y2="400"/>
+        <line x1="528" y1="400" x2="490" y2="432"/>
+        <line x1="490" y1="420" x2="490" y2="480"/>
+        <line x1="404" y1="450" x2="490" y2="450"/>
+        <rect x="340" y="438" width="64" height="24"/>
+        <line x1="290" y1="450" x2="340" y2="450"/>
+        <line x1="490" y1="468" x2="528" y2="500"/>
+        <line x1="528" y1="500" x2="528" y2="528"/>
+        <line x1="504" y1="528" x2="552" y2="528"/>
+        <line x1="512" y1="538" x2="544" y2="538"/>
+        <line x1="520" y1="548" x2="536" y2="548"/>
+      </g>
+
+      <!-- setas do emissor (NPN: apontam para fora da base) -->
+      <g fill="#000" stroke="none">
+        <polygon points="518,222 505.6,218.1 512,210.5"/>
+        <polygon points="518,492 505.6,488.1 512,480.5"/>
+      </g>
+
+      <g font-family="Times New Roman, serif" font-size="16">
+        <text x="282" y="174" text-anchor="end">GPIO6</text>
+        <text x="282" y="444" text-anchor="end">GPIO7</text>
+        <text x="165" y="482" text-anchor="middle">GND</text>
+        <text x="165" y="290" text-anchor="middle" font-size="18" font-weight="bold">ESP32-C3</text>
+        <text x="165" y="316" text-anchor="middle" font-size="15">unidade receptora</text>
+        <text x="165" y="342" text-anchor="middle" font-size="13">embarcada no brinquedo</text>
+
+        <text x="372" y="160" text-anchor="middle">R<tspan font-size="12" dy="4">B1</tspan></text>
+        <text x="372" y="210" text-anchor="middle">330 Ω</text>
+        <text x="470" y="228" text-anchor="end">Q1</text>
+        <text x="470" y="248" text-anchor="end" font-size="14">TIP122</text>
+        <text x="572" y="76" text-anchor="start">M1 — modo 1</text>
+        <text x="572" y="96" text-anchor="start" font-size="13">carga do brinquedo</text>
+        <text x="556" y="34" text-anchor="start" font-size="14">+V<tspan font-size="11" dy="3">CC</tspan></text>
+
+        <text x="372" y="430" text-anchor="middle">R<tspan font-size="12" dy="4">B2</tspan></text>
+        <text x="372" y="480" text-anchor="middle">330 Ω</text>
+        <text x="470" y="498" text-anchor="end">Q2</text>
+        <text x="470" y="518" text-anchor="end" font-size="14">TIP122</text>
+        <text x="572" y="346" text-anchor="start">M2 — modo 2</text>
+        <text x="572" y="366" text-anchor="start" font-size="13">carga do brinquedo</text>
+        <text x="556" y="304" text-anchor="start" font-size="14">+V<tspan font-size="11" dy="3">CC</tspan></text>
+
+        <text x="380" y="580" text-anchor="middle" font-size="13">Terra comum obrigatório entre a fonte do brinquedo e a placa</text>
+      </g>
+    </svg>
+  </div>
+  <p class="fonte">Fonte: elaborado pelo autor (2026).</p>
+</figure>
+
+<h2>Escolha do TIP122</h2>
+
+<p>O TIP122 é um par Darlington NPN integrado em encapsulamento TO-220,
+especificado para 100 V entre coletor e emissor e 5 A de corrente de coletor
+contínua. A característica decisiva para esta aplicação é o ganho: por associar
+dois transistores em cascata, apresenta <em>h</em><sub>FE</sub> mínimo de 1000,
+contra valores da ordem de 100 em um transistor bipolar comum. Isso significa
+que uma corrente de base de poucos miliampères — perfeitamente ao alcance de um
+pino de microcontrolador — basta para saturar o dispositivo com correntes de
+coletor da ordem de ampères.</p>
+
+<p>O componente já traz, internamente, dois resistores de polarização entre base
+e emissor e um diodo de proteção em antiparalelo entre coletor e emissor. Esse
+diodo integrado dispensa o diodo de roda-livre discreto que seria obrigatório em
+cargas indutivas. A carga aqui prevista é a eletrônica do brinquedo, de natureza
+essencialmente resistiva; ainda assim, caso a inspeção posterior revele algum
+motor ou relé embutido, a proteção já está presente por construção.</p>
+
+<h2>Dimensionamento do resistor de base</h2>
+
+<p>O resistor de base determina a corrente injetada na base do Darlington a
+partir da diferença entre a tensão de saída do pino e a queda base-emissor do
+dispositivo. Por serem duas junções em série, essa queda é aproximadamente o
+dobro da de um transistor simples: adota-se 2,0 V para a faixa de corrente
+prevista, com 3,3 V na saída do ESP32-C3:</p>
+
+<p class="sem-recuo" style="text-align:center">
+<em>I</em><sub>B</sub> =
+(<em>V</em><sub>saída</sub> − <em>V</em><sub>BE</sub>) / <em>R</em><sub>B</sub>
+= (3,3 V − 2,0 V) / 330 Ω ≈ 3,9 mA
+</p>
+
+<p>O valor situa-se bem abaixo do limite de 40 mA por pino especificado para a
+família, e igualmente abaixo do limite agregado da porta. Do lado do coletor, a
+corrente que essa base é capaz de sustentar em saturação decorre do ganho
+mínimo:</p>
+
+<p class="sem-recuo" style="text-align:center">
+<em>I</em><sub>C(máx)</sub> =
+<em>h</em><sub>FE(mín)</sub> × <em>I</em><sub>B</sub>
+= 1000 × 3,9 mA ≈ 3,9 A
+</p>
+
+<p>A margem é ampla: qualquer carga plausível de brinquedo alimentado em baixa
+tensão consome uma fração desse valor, de modo que o transistor opera em
+saturação profunda, e não na região ativa. Convém verificar o pior caso da queda
+base-emissor, que a folha de dados especifica em até 2,5 V para correntes
+elevadas. Mesmo nessa condição extrema restariam 0,8 V sobre o resistor,
+resultando em 2,4 mA de base e ainda cerca de 2,4 A de capacidade de coletor —
+o dimensionamento permanece válido sem alteração do resistor.</p>
+
+<p>Adotou-se 330 Ω por atender confortavelmente ao requisito e por já constar do
+estoque de componentes do projeto. Não há vantagem em reduzir o valor: aumentar
+a corrente de base apenas oneraria o pino do microcontrolador sem benefício, já
+que a saturação já está garantida com folga de três ordens de grandeza sobre a
+corrente de carga esperada. Esta conclusão — margem ampla de acionamento da
+base — não depende da tensão de alimentação da carga, e por isso permanece
+válida independentemente da limitação registrada a seguir.</p>
+
+<h2>Queda de saturação e dissipação</h2>
+
+<p>O preço pago pelo alto ganho do Darlington é uma tensão de saturação elevada.
+Enquanto um transistor bipolar comum satura em torno de 0,2 V, o TIP122
+apresenta <em>V</em><sub>CE(sat)</sub> entre aproximadamente 1,0 V e 2,0 V,
+conforme a corrente. Essa queda tem duas consequências práticas que precisam ser
+consideradas na integração com o brinquedo.</p>
+
+<p>A primeira é que a carga não recebe a tensão plena da fonte, mas sim
+<em>V</em><sub>CC</sub> − <em>V</em><sub>CE(sat)</sub>. Em fontes de baixa tensão
+essa perda é proporcionalmente significativa, e a tensão efetivamente entregue
+ao brinquedo deve ser conferida com o circuito em operação, uma vez definida a
+alimentação.</p>
+
+<p>A segunda é a dissipação no próprio transistor, dada pelo produto da queda
+pela corrente conduzida:</p>
+
+<p class="sem-recuo" style="text-align:center">
+<em>P</em><sub>Q</sub> =
+<em>V</em><sub>CE(sat)</sub> × <em>I</em><sub>C</sub>
+</p>
+
+<p><strong>Todos os valores abaixo são estimativas de projeto, não medições</strong>,
+porque dependem de V<sub>CC</sub> e da corrente de carga do brinquedo, ainda não
+caracterizados (ver seção de limitações). Para uma carga hipotética de 500 mA e
+queda de 1,2 V — valores plausíveis para a faixa de corrente esperada, não
+medidos —, a dissipação estimada é de 0,6 W. O encapsulamento TO-220 sem
+dissipador apresenta resistência térmica junção-ambiente da ordem de 62 °C/W, o
+que corresponderia a uma elevação estimada de cerca de 38 °C sobre a
+temperatura ambiente — dentro do que se considera aceitável. Como regra prática
+de projeto, adota-se o limite de 1 W por transistor sem dissipador; acima disso,
+torna-se necessário acrescentar aleta ao TO-220. Definidos os dois números que
+faltam — tensão e corrente reais do brinquedo —, a verificação se resume a
+repetir esse cálculo com os valores medidos e conferir a tensão residual
+entregue à carga.</p>
+
+<h2>Estado de repouso e comportamento na partida</h2>
+
+<p>O firmware da unidade receptora leva os dois pinos de saída a nível baixo
+explicitamente, como primeira ação da rotina de inicialização, antes de
+qualquer outra configuração — inclusive antes de o rádio ou a criptografia
+serem inicializados:</p>
+
+<figure class="quadro">
+  <p class="legenda">Estado de repouso forçado na inicialização
+    (<code>receptor/receptor.ino</code>)</p>
+<pre>// Nível baixo antes de tudo: base sem corrente, TIP122 cortado, brinquedo
+// desligado. Até aqui os pinos estavam em alta impedância e os resistores
+// internos de base do Darlington é que seguravam o transistor no corte.
+for (uint8_t i = 0; i &lt; NUM_CANAIS; i++) {
+  pinMode(pinosModo[i], OUTPUT);
+  digitalWrite(pinosModo[i], LOW);
+}</pre>
+  <p class="fonte">Fonte: código-fonte do projeto (2026).</p>
+</figure>
+
+<p>Isso fecha a lacuna entre dois estados que, de outra forma, seriam
+distintos: antes de <code>pinMode</code> ser chamado, o pino está em alta
+impedância, e é a própria polarização interna do TIP122 — os resistores de
+base a emissor descritos na subseção anterior — que mantém o transistor
+cortado nessa janela; a partir de <code>pinMode</code>, o firmware assume o
+controle explícito e força o mesmo resultado por construção. Não existe,
+portanto, instante entre a energização e a decisão de estado do primeiro
+pacote recebido em que a saída fique indefinida: o brinquedo permanece
+desligado por padrão até que um quadro válido determine o contrário. O estado
+lógico associado a cada canal (<code>estadoAtual</code>, em
+<code>CanalBotao</code>) segue a mesma convenção — inicializado em zero por
+<code>canalIniciar</code> — de modo que o estado padrão da unidade emissora
+também corresponde a "desligado".</p>
+
+<h2>Referência de terra e escolha dos pinos</h2>
+
+<p>Por se tratar de chaveamento de lado baixo, o emissor de cada transistor é
+ligado ao terra, e é indispensável que esse terra seja comum ao da fonte que
+alimenta o brinquedo. Sem essa ligação não existe caminho de retorno para a
+corrente de coletor, e o circuito simplesmente não conduz. Quando o brinquedo
+possui fonte própria — pilhas, por exemplo —, basta unir o terminal negativo
+dessa fonte ao pino GND da placa receptora.</p>
+
+<p>Os pinos GPIO6 e GPIO7 são de propósito geral no ESP32-C3. Cabe destacar que
+a numeração <em>não</em> é intercambiável entre as famílias: no ESP32 clássico,
+essa mesma faixa é reservada à memória <em>flash</em> SPI e não pode ser
+utilizada. É por essa razão que os pinos de entrada e de saída são selecionados
+em tempo de compilação, conforme descrito na seção de compilação e
+gravação.</p>
+
+<h1>Alimentação</h1>
+
+<p>O sistema possui dois domínios de alimentação distintos, que compartilham
+apenas a referência de terra.</p>
+
+<p>O domínio lógico alimenta as duas placas, cada uma por sua própria porta USB,
+em 5 V, com o regulador embarcado fornecendo os 3,3 V usados pelo SoC e
+disponibilizados no pino 3V3. O consumo é dominado pelo rádio: a transmissão em
+ESP-NOW produz picos de corrente da ordem de centenas de miliampères, com
+duração de poucos milissegundos. Os circuitos de comando aqui descritos são
+desprezíveis diante disso: o circuito de entrada responde por cerca de 0,15 mA,
+por empregar exclusivamente os <em>pull-up</em> internos, e as duas bases dos
+transistores somam 7,8 mA com ambos os modos acionados.</p>
+
+<p>O domínio de potência alimenta as cargas do brinquedo através do coletor dos
+transistores, em <span class="lacuna">[V<sub>CC</sub> ainda não medido]</span>. Esse
+domínio não passa pelo regulador da placa nem pela porta USB, e sua corrente é
+determinada exclusivamente pela carga.</p>
+
+<p class="nota">Advertência de projeto: a corrente do brinquedo não deve ser
+extraída do pino 3V3 nem do pino 5V da placa receptora. O regulador embarcado
+nas placas de desenvolvimento é dimensionado para o próprio SoC, com margem
+modesta, e a alimentação da carga por essa via provocaria queda de tensão e
+reinicializações durante os picos de transmissão do rádio. É precisamente para
+evitar essa condição que o estágio de potência é isolado em domínio próprio.</p>
+
+<p class="nota">Observação: caso se opte por acrescentar resistores de
+<em>pull-up</em> externos, eles devem ser ligados ao pino 3V3 da placa, nunca ao
+pino VIN ou a 5 V. As entradas do ESP32 não são tolerantes a 5 V, e a ligação
+incorreta submeteria o pino a sobretensão permanente sempre que o botão
+estivesse solto.</p>
+
+<h1>Organização do código-fonte</h1>
+
+<p>O projeto separa deliberadamente a lógica de decisão das chamadas de
+plataforma: nenhuma função em <code>lib/</code> chama <code>digitalRead</code>,
+<code>millis</code> ou qualquer outra API do Arduino diretamente — leitura e
+tempo entram sempre como parâmetro. Essa separação entre lógica portável e
+camada de acesso a hardware segue a prática consolidada por Barr (1999) para
+sistemas embarcados em C/C++, na qual isolar o comportamento testável da
+camada de acesso direto ao periférico é o que torna possível verificar a
+lógica sem depender do dispositivo físico. Todo comportamento que possa ser
+expresso sem depender do Arduino reside em um diretório próprio e é compilado
+tanto pelos sketches quanto por uma bateria de testes executada na máquina de
+desenvolvimento.</p>
+
+<figure class="quadro">
+  <p class="legenda">Estrutura de diretórios do repositório</p>
+<pre>lib/          lógica pura, sem Arduino: é onde mora o comportamento
+test/         testes de host, compilados com g++, dispensam hardware
+emissor/      sketch da unidade emissora + vínculos para lib/
+receptor/     sketch da unidade receptora + vínculos para lib/
+ferramentas/  utilitários de bancada (MACs, chaves, ensaios)
+docs/         documentação e registros de ensaio
+legado/       versão original dos sketches, anterior à reestruturação</pre>
+  <p class="fonte">Fonte: elaborado pelo autor (2026).</p>
+</figure>
+
+<h2>Fonte única de verdade</h2>
+
+<p>O ambiente de desenvolvimento do Arduino compila exclusivamente arquivos
+situados dentro da pasta do sketch, o que normalmente obrigaria a duplicar o
+código comum às duas unidades. Para evitar a duplicação, os diretórios das
+unidades contêm vínculos simbólicos para os arquivos do diretório
+<code>lib/</code>, recriados automaticamente pelo alvo <code>sketches</code> do
+<em>Makefile</em>. O diretório <code>lib/</code> permanece, assim, como única
+fonte de verdade, e uma correção aplicada nele alcança as duas unidades sem
+intervenção manual.</p>
+
+<h1>Compilação e gravação</h1>
+
+<p>As duas unidades empregam famílias distintas de microcontrolador, o que
+impede o uso de um comando único de compilação. O <em>Makefile</em>
+parametriza por papel a placa alvo, a porta serial, o modelo de chip e as opções
+de placa.</p>
+
+<h2>Diferenças entre as famílias</h2>
+
+<p>Três particularidades exigem tratamento explícito:</p>
+
+<ul>
+  <li><strong>Interface serial.</strong> O ESP32-C3 utiliza USB nativa e exige a
+      opção de placa <code>CDCOnBoot=cdc</code>; sem ela, a saída serial é
+      encaminhada à UART0 e nada aparece no dispositivo USB. A placa ESP32
+      clássica sequer possui essa opção, e passá-la resulta em erro. Daí a
+      existência de conjuntos de opções separados por papel.</li>
+  <li><strong>Canal de rádio.</strong> Sem associação a um ponto de acesso, o
+      valor <em>canal atual</em> não garante que os dois rádios permaneçam no
+      mesmo canal. Os sketches fixam o canal explicitamente e utilizam o mesmo
+      valor no cadastro do par.</li>
+  <li><strong>Assinatura das funções de retorno.</strong> As funções de retorno
+      do ESP-NOW mudaram de assinatura nas versões 3.0.0 e 3.2.0 do núcleo. Os
+      sketches contêm guardas de versão que preservam a compilação nas três
+      gerações.</li>
+</ul>
+
+<h2>Seleção de pinos em tempo de compilação</h2>
+
+<p>A numeração dos pinos não é intercambiável entre as famílias, e o mesmo
+código-fonte compila para ambas. A seleção ocorre por macro de pré-processador,
+a partir do alvo definido pelo ESP-IDF.</p>
+
+<figure class="quadro">
+  <p class="legenda">Seleção condicional dos pinos de entrada
+    (<code>emissor/emissor.ino</code>)</p>
+<pre>#if CONFIG_IDF_TARGET_ESP32
+  #define BOTAO0_PIN 4
+  #define BOTAO1_PIN 5
+#elif CONFIG_IDF_TARGET_ESP32C3
+  #define BOTAO0_PIN 4
+  #define BOTAO1_PIN 5
+#else
+  #error "Alvo não previsto: escolha pinos de botão válidos para este chip"
+#endif</pre>
+  <p class="fonte">Fonte: código-fonte do projeto (2026).</p>
+</figure>
+
+<p>A diretiva <code>#error</code> no ramo final é intencional: um alvo não
+previsto interrompe a compilação em vez de produzir um binário que acionaria
+pinos arbitrários. Na unidade receptora, a mesma estrutura seleciona GPIO6 e
+GPIO7 para o ESP32-C3 e GPIO25 e GPIO26 para o ESP32 clássico, cuja faixa de
+GPIO6 a GPIO11 é reservada à memória <em>flash</em>.</p>
+
+<h1>Arquitetura de tempo real</h1>
+
+<p>Ambas as unidades empregam tarefas do FreeRTOS em vez de um laço único. A
+motivação é o isolamento temporal: a amostragem dos botões precisa ocorrer em
+período regular, e não pode ser suspensa enquanto a rajada de transmissão é
+emitida. As prioridades atribuídas a cada tarefa seguem o princípio geral do
+escalonamento por prioridade fixa: a tarefa cuja urgência de execução é maior
+recebe a prioridade mais alta, e as demais são preteridas quando há disputa
+pela CPU (Liu; Layland, 1973; Oliveira; Lima, 2023).</p>
+
+<h2>Unidade emissora</h2>
+
+<figure class="figura">
+  <p class="legenda">Tarefas e filas da unidade emissora</p>
+  <div class="desenho">
+    <svg viewBox="0 0 840 370" role="img"
+         aria-label="Diagrama: tarefaBotoes publica em filaEventos, consumida por tarefaEnvio, que chama o rádio; o rádio invoca a função de retorno de status, que alimenta filaStatus, consumida por tarefaDiagnostico">
+      <g fill="none" stroke="#000" stroke-width="2">
+        <rect x="30" y="40" width="220" height="80" rx="4"/>
+        <rect x="330" y="52" width="180" height="56" rx="28"/>
+        <rect x="590" y="40" width="220" height="80" rx="4"/>
+        <rect x="590" y="155" width="220" height="65" rx="4" stroke-dasharray="6 4"/>
+        <rect x="590" y="255" width="220" height="80" rx="4"/>
+        <rect x="330" y="267" width="180" height="56" rx="28"/>
+        <rect x="30" y="255" width="220" height="80" rx="4"/>
+
+        <line x1="250" y1="80" x2="316" y2="80"/>
+        <polygon points="330,80 312,73 312,87" fill="#000" stroke="none"/>
+        <line x1="510" y1="80" x2="576" y2="80"/>
+        <polygon points="590,80 572,73 572,87" fill="#000" stroke="none"/>
+        <line x1="700" y1="120" x2="700" y2="141"/>
+        <polygon points="700,155 693,141 707,141" fill="#000" stroke="none"/>
+        <line x1="700" y1="220" x2="700" y2="241"/>
+        <polygon points="700,255 693,241 707,241" fill="#000" stroke="none"/>
+        <line x1="590" y1="295" x2="524" y2="295"/>
+        <polygon points="510,295 528,288 528,302" fill="#000" stroke="none"/>
+        <line x1="330" y1="295" x2="264" y2="295"/>
+        <polygon points="250,295 268,288 268,302" fill="#000" stroke="none"/>
+      </g>
+      <g font-family="Times New Roman, serif" text-anchor="middle">
+        <text x="140" y="72" font-size="16" font-weight="bold">tarefaBotoes</text>
+        <text x="140" y="94" font-size="14">prioridade 3</text>
+        <text x="140" y="112" font-size="14">amostra a cada 5 ms</text>
+
+        <text x="420" y="78" font-size="15" font-weight="bold">filaEventos</text>
+        <text x="420" y="97" font-size="13">16 posições</text>
+
+        <text x="700" y="72" font-size="16" font-weight="bold">tarefaEnvio</text>
+        <text x="700" y="94" font-size="14">prioridade 2</text>
+        <text x="700" y="112" font-size="14">rajada de 3 quadros</text>
+
+        <text x="700" y="182" font-size="15">rádio: esp_now_send()</text>
+        <text x="700" y="203" font-size="13">quadro unicast cifrado</text>
+
+        <text x="700" y="285" font-size="15" font-weight="bold">função de retorno</text>
+        <text x="700" y="305" font-size="14">de status do envio</text>
+        <text x="700" y="324" font-size="13">(contexto do rádio)</text>
+
+        <text x="420" y="300" font-size="15" font-weight="bold">filaStatus</text>
+
+        <text x="140" y="285" font-size="15" font-weight="bold">tarefaDiagnostico</text>
+        <text x="140" y="305" font-size="14">prioridade 1</text>
+        <text x="140" y="324" font-size="13">relata a cada 10 s</text>
+      </g>
+    </svg>
+  </div>
+  <p class="fonte">Fonte: elaborado pelo autor (2026).</p>
+</figure>
+
+<p>A tarefa de amostragem executa com prioridade 3, a mais alta, e utiliza
+<code>vTaskDelayUntil</code> para manter período fixo de 5 ms independentemente
+do tempo gasto no corpo do laço. A tarefa de envio, de prioridade 2, consome a
+fila e emite cada evento três vezes; o atraso entre quadros da rajada cede a
+CPU, de modo que a amostragem dos botões continua ocorrendo durante a
+transmissão. A tarefa de diagnóstico, de prioridade 1, é a única que pode ser
+preterida indefinidamente sem prejuízo funcional. A atribuição decrescente de
+prioridade — amostragem acima de envio, envio acima de diagnóstico — reflete
+exatamente essa ordem de urgência: perder uma amostra de botão é
+irrecuperável, perder um ciclo de relato de diagnóstico não é.</p>
+
+<p>A publicação na fila é feita sem bloqueio (<code>xQueueSend</code> com
+tempo de espera zero). Se a fila estiver cheia, o evento é contabilizado no
+contador atômico <code>eventosPerdidos</code> e a amostragem prossegue, em vez
+de a tarefa de prioridade mais alta ficar suspensa aguardando espaço. As duas
+filas da unidade emissora têm profundidade de 16 posições.</p>
+
+<h2>Unidade receptora</h2>
+
+<p>A função de retorno do ESP-NOW executa no contexto da tarefa de rede, onde
+qualquer processamento demorado prejudica o rádio. Por essa razão, ela se limita
+a copiar o quadro recebido para uma fila de 16 posições
+(<code>filaQuadros</code>). A decisão sobre o estado de cada modo e o
+acionamento efetivo dos pinos ocorrem na tarefa <code>tarefaModos</code>,
+de prioridade 3, fora do caminho crítico do rádio. Uma segunda tarefa, de
+prioridade 1, relata a cada 10 s, pela saída serial, o número de quadros
+descartados e o número de posições livres na fila — o mesmo mecanismo de
+diagnóstico empregado na unidade emissora.</p>
+
+<h1>Tratamento de acionamento mecânico</h1>
+
+<p>Contatos mecânicos produzem múltiplas transições espúrias durante alguns
+milissegundos após o fechamento. O tratamento é feito por uma máquina de estados
+que exige estabilidade da leitura por um intervalo mínimo, fixado em 40 ms,
+antes de reconhecer uma borda — abordagem de filtragem digital por tempo de
+estabilização consolidada na prática de sistemas embarcados (Ganssle,
+2026).</p>
+
+<figure class="figura">
+  <p class="legenda">Fluxo de decisão da função <code>canalAtualizar</code></p>
+  <div class="desenho">
+    <svg viewBox="0 0 900 1000" role="img"
+         aria-label="Fluxograma da máquina de estados de debounce, com quatro decisões que levam a retorno falso e um caminho de sucesso que alterna o estado">
+      <g fill="none" stroke="#000" stroke-width="2">
+        <rect x="120" y="20" width="320" height="52" rx="26"/>
+        <polygon points="280,100 440,150 280,200 120,150"/>
+        <rect x="500" y="122" width="200" height="56" rx="4"/>
+        <polygon points="280,240 440,290 280,340 120,290"/>
+        <polygon points="280,380 440,430 280,480 120,430"/>
+        <rect x="120" y="520" width="320" height="60" rx="4"/>
+        <polygon points="280,610 440,660 280,710 120,660"/>
+        <rect x="120" y="750" width="320" height="70" rx="4"/>
+        <rect x="120" y="880" width="320" height="52" rx="26"/>
+        <rect x="640" y="880" width="240" height="52" rx="26"/>
+
+        <!-- espinha -->
+        <line x1="280" y1="72" x2="280" y2="94"/>
+        <polygon points="280,100 273,86 287,86" fill="#000" stroke="none"/>
+        <line x1="280" y1="200" x2="280" y2="234"/>
+        <polygon points="280,240 273,226 287,226" fill="#000" stroke="none"/>
+        <line x1="280" y1="340" x2="280" y2="374"/>
+        <polygon points="280,380 273,366 287,366" fill="#000" stroke="none"/>
+        <line x1="280" y1="480" x2="280" y2="514"/>
+        <polygon points="280,520 273,506 287,506" fill="#000" stroke="none"/>
+        <line x1="280" y1="580" x2="280" y2="604"/>
+        <polygon points="280,610 273,596 287,596" fill="#000" stroke="none"/>
+        <line x1="280" y1="710" x2="280" y2="744"/>
+        <polygon points="280,750 273,736 287,736" fill="#000" stroke="none"/>
+        <line x1="280" y1="820" x2="280" y2="874"/>
+        <polygon points="280,880 273,866 287,866" fill="#000" stroke="none"/>
+
+        <!-- saidas para falso -->
+        <line x1="440" y1="150" x2="500" y2="150"/>
+        <line x1="700" y1="150" x2="760" y2="150"/>
+        <line x1="440" y1="290" x2="760" y2="290"/>
+        <line x1="440" y1="430" x2="760" y2="430"/>
+        <line x1="440" y1="660" x2="760" y2="660"/>
+        <line x1="760" y1="150" x2="760" y2="874"/>
+        <polygon points="760,880 753,866 767,866" fill="#000" stroke="none"/>
+        <circle cx="760" cy="290" r="4.5" fill="#000"/>
+        <circle cx="760" cy="430" r="4.5" fill="#000"/>
+        <circle cx="760" cy="660" r="4.5" fill="#000"/>
+      </g>
+      <g font-family="Times New Roman, serif" text-anchor="middle">
+        <text x="280" y="52" font-size="16">canalAtualizar(leitura, agora)</text>
+
+        <text x="280" y="145" font-size="15">leitura ≠</text>
+        <text x="280" y="166" font-size="15">leituraAnterior?</text>
+
+        <text x="600" y="146" font-size="15">reinicia o</text>
+        <text x="600" y="166" font-size="15">cronômetro</text>
+
+        <text x="280" y="285" font-size="15">agora − ultimaMudanca</text>
+        <text x="280" y="306" font-size="15">&gt; debounceMs?</text>
+
+        <text x="280" y="425" font-size="15">leitura ≠</text>
+        <text x="280" y="446" font-size="15">estadoEstavel?</text>
+
+        <text x="280" y="558" font-size="15">estadoEstavel ← leitura</text>
+
+        <text x="280" y="655" font-size="15">leitura =</text>
+        <text x="280" y="676" font-size="15">NÍVEL BAIXO?</text>
+
+        <text x="280" y="782" font-size="15">estadoAtual ← ¬estadoAtual</text>
+        <text x="280" y="805" font-size="15">seq ← seq + 1</text>
+
+        <text x="280" y="912" font-size="16">retorna VERDADEIRO</text>
+        <text x="760" y="912" font-size="16">retorna FALSO</text>
+
+        <!-- rotulos dos ramos -->
+        <text x="468" y="140" font-size="13">sim</text>
+        <text x="468" y="280" font-size="13">não</text>
+        <text x="468" y="420" font-size="13">não</text>
+        <text x="468" y="650" font-size="13">não</text>
+        <text x="256" y="222" font-size="13" text-anchor="end">não</text>
+        <text x="256" y="362" font-size="13" text-anchor="end">sim</text>
+        <text x="256" y="502" font-size="13" text-anchor="end">sim</text>
+        <text x="256" y="732" font-size="13" text-anchor="end">sim</text>
+      </g>
+    </svg>
+  </div>
+  <p class="fonte">Fonte: elaborado pelo autor (2026).</p>
+</figure>
+
+<figure class="quadro">
+  <p class="legenda">Máquina de estados de <em>debounce</em>
+    (<code>lib/debounce.cpp</code>)</p>
+<pre>bool canalAtualizar(CanalBotao *c, int leitura, uint32_t agora,
+                    uint32_t debounceMs) {
+  // Toda transição crua reinicia o cronômetro do debounce.
+  if (leitura != c-&gt;leituraAnterior) {
+    c-&gt;leituraAnterior = leitura;
+    c-&gt;ultimaMudanca   = agora;
+    return false;
+  }
+
+  // Leitura estável tempo suficiente e diferente do que já estava valendo:
+  // só aqui existe uma borda confirmada.
+  if ((agora - c-&gt;ultimaMudanca) &lt;= debounceMs) return false;
+  if (leitura == c-&gt;estadoEstavel) return false;
+
+  c-&gt;estadoEstavel = leitura;
+
+  // Borda de descida: com INPUT_PULLUP, pressionado = NIVEL_BAIXO.
+  if (leitura != NIVEL_BAIXO) return false;
+
+  c-&gt;estadoAtual = !c-&gt;estadoAtual;
+  c-&gt;seq++;
+  return true;
+}</pre>
+  <p class="fonte">Fonte: código-fonte do projeto (2026).</p>
+</figure>
+
+<p>A função não invoca <code>digitalRead</code> nem <code>millis</code>: a
+leitura e o instante entram como parâmetros. Essa decisão é o que torna a
+máquina de estados verificável na máquina de desenvolvimento, com o tempo
+controlado pelo teste, sem depender de hardware nem de espera real — a mesma
+separação entre lógica e plataforma discutida na seção de organização do
+código-fonte.</p>
+
+<p>Cabe observar que o estado lógico associado ao canal (<code>estadoAtual</code>,
+inicializado em zero por <code>canalIniciar</code>) é alternado a cada borda
+confirmada. O acionamento comporta-se, portanto, como comutador: um toque
+completo liga o modo correspondente do brinquedo e o toque seguinte o
+desliga.</p>
+
+<h1>Protocolo de aplicação</h1>
+
+<p>O ESP-NOW é um protocolo proprietário da Espressif que opera na faixa de
+2,4 GHz reaproveitando a camada física do padrão IEEE 802.11, mas dispensando
+por completo a pilha de rede construída sobre ela. Não há associação a ponto de
+acesso, não há autenticação WPA, não há atribuição de endereço IP e não há
+handshake de transporte: os dados trafegam em quadros de gerenciamento do tipo
+<em>vendor-specific action frame</em>, que os rádios trocam diretamente entre
+si. Essa escolha é o que torna o protocolo adequado ao projeto: um sistema
+convencional sobre Wi-Fi exigiria infraestrutura intermediária — um roteador
+—, e o tempo entre o acionamento do botão e a resposta do brinquedo incluiria
+associação, negociação e roteamento, tipicamente dezenas a centenas de
+milissegundos. No ESP-NOW, o quadro parte do rádio emissor e chega ao rádio
+receptor em ordem de poucos milissegundos — Urazayev <em>et al.</em> (2023)
+relatam, para condições internas comparáveis, ganho de alcance e de eficiência
+energética frente ao Wi-Fi convencional —, e as duas placas voltam a se
+comunicar imediatamente após uma reinicialização, porque não há estado de
+sessão a reconstruir.</p>
+
+<h2>Endereçamento e tabela de pares</h2>
+
+<p>O endereçamento é feito diretamente pelo endereço MAC de 48 bits da interface
+de estação de cada placa. Antes de qualquer transmissão, o destinatário precisa
+ser registrado em uma tabela de pares mantida pelo rádio, informando o endereço,
+o canal e a chave de sessão. É esse registro que habilita a cifra, detalhada na
+seção de segurança.</p>
+
+<p>No projeto, os endereços das duas placas são fixos e versionados em
+<code>config_rede.h</code>, e o canal é fixado em 1 nos dois lados. A fixação do
+canal é obrigatória: o ESP-NOW não realiza varredura, de modo que placas em
+canais distintos simplesmente não se enxergam, ainda que estejam a centímetros
+uma da outra.</p>
+
+<h2>Estrutura do quadro</h2>
+
+<p>O quadro transmitido tem oito octetos e emprega alinhamento compacto
+(<code>__attribute__((packed))</code>), de modo que a representação em
+memória é idêntica nas duas famílias de microcontrolador. O protocolo ESP-NOW
+admite até 250 bytes de carga útil por quadro; a aplicação utiliza apenas
+oito.</p>
+
+<figure class="figura">
+  <p class="legenda">Disposição dos campos no quadro transmitido</p>
+  <div class="desenho">
+    <svg viewBox="0 0 800 230" role="img"
+         aria-label="Mapa de octetos do quadro: bootId ocupa os octetos 0 a 3, botao o 4, estado o 5 e seq os octetos 6 e 7">
+      <g fill="none" stroke="#000" stroke-width="2">
+        <rect x="60" y="80" width="640" height="56"/>
+        <line x1="140" y1="80" x2="140" y2="136"/>
+        <line x1="220" y1="80" x2="220" y2="136"/>
+        <line x1="300" y1="80" x2="300" y2="136"/>
+        <line x1="380" y1="80" x2="380" y2="136"/>
+        <line x1="460" y1="80" x2="460" y2="136"/>
+        <line x1="540" y1="80" x2="540" y2="136"/>
+        <line x1="620" y1="80" x2="620" y2="136"/>
+
+        <!-- chaves de campo -->
+        <line x1="62" y1="70" x2="378" y2="70"/>
+        <line x1="62" y1="70" x2="62" y2="60"/>
+        <line x1="378" y1="70" x2="378" y2="60"/>
+        <line x1="382" y1="70" x2="458" y2="70"/>
+        <line x1="382" y1="70" x2="382" y2="60"/>
+        <line x1="458" y1="70" x2="458" y2="60"/>
+        <line x1="462" y1="70" x2="538" y2="70"/>
+        <line x1="462" y1="70" x2="462" y2="60"/>
+        <line x1="538" y1="70" x2="538" y2="60"/>
+        <line x1="542" y1="70" x2="698" y2="70"/>
+        <line x1="542" y1="70" x2="542" y2="60"/>
+        <line x1="698" y1="70" x2="698" y2="60"/>
+      </g>
+      <g font-family="Times New Roman, serif" text-anchor="middle">
+        <text x="220" y="50" font-size="16" font-weight="bold">bootId</text>
+        <text x="220" y="30" font-size="13">uint32_t</text>
+        <text x="420" y="50" font-size="16" font-weight="bold">botao</text>
+        <text x="420" y="30" font-size="13">uint8_t</text>
+        <text x="500" y="50" font-size="16" font-weight="bold">estado</text>
+        <text x="500" y="30" font-size="13">uint8_t</text>
+        <text x="620" y="50" font-size="16" font-weight="bold">seq</text>
+        <text x="620" y="30" font-size="13">uint16_t</text>
+
+        <text x="100" y="116" font-size="15">0</text>
+        <text x="180" y="116" font-size="15">1</text>
+        <text x="260" y="116" font-size="15">2</text>
+        <text x="340" y="116" font-size="15">3</text>
+        <text x="420" y="116" font-size="15">4</text>
+        <text x="500" y="116" font-size="15">5</text>
+        <text x="580" y="116" font-size="15">6</text>
+        <text x="660" y="116" font-size="15">7</text>
+
+        <text x="380" y="168" font-size="14">octeto</text>
+        <text x="380" y="200" font-size="14">comprimento total: 8 octetos</text>
+      </g>
+    </svg>
+  </div>
+  <p class="fonte">Fonte: elaborado pelo autor (2026).</p>
+</figure>
+
+<figure class="quadro">
+  <p class="legenda">Contrato de dados entre as unidades
+    (<code>lib/protocolo.h</code>)</p>
+<pre>typedef struct __attribute__((packed)) {
+  uint32_t bootId;  // sorteado a cada boot do emissor, invalida seq antiga
+  uint8_t  botao;   // 0 ou 1
+  uint8_t  estado;  // 0 = modo desligado, 1 = modo ligado
+  uint16_t seq;     // sequência por canal, detecta repetição da rajada
+} pacote_t;</pre>
+  <p class="fonte">Fonte: código-fonte do projeto (2026).</p>
+</figure>
+
+<h2>Transmissão de estado absoluto</h2>
+
+<p>O campo <code>estado</code> carrega o valor desejado da saída, e não uma ordem
+de alternância. A distinção é determinante para a robustez: com uma ordem de
+alternância, a perda de um quadro inverteria permanentemente a relação entre o
+botão e o modo que ele comanda, e o erro persistiria até que o operador
+percebesse a inconsistência. Com estado absoluto, o acionamento seguinte reafirma
+o valor correto, e o sistema se recupera sozinho.</p>
+
+<h2>Identificador de inicialização</h2>
+
+<p>O campo <code>bootId</code> é sorteado a cada partida da unidade emissora,
+a partir do gerador de números aleatórios por hardware (<code>esp_random()</code>),
+após o rádio ser ligado. Sem ele, a reinicialização do emissor faria a
+sequência retornar ao início, e a unidade receptora — que descarta números de
+sequência não superiores ao último observado — rejeitaria os primeiros
+acionamentos após o reinício. Ao detectar identificador diferente do
+conhecido, a receptora descarta o histórico e volta a aceitar a numeração
+desde o começo.</p>
+
+<h2>Eliminação de duplicatas</h2>
+
+<p>Cada evento é transmitido três vezes, com intervalo de 15 ms entre
+quadros, para cobrir perdas ocasionais do enlace. Como a repetição é
+deliberada, a unidade receptora precisa distinguir um quadro repetido de um
+novo acionamento, o que é feito pelo número de sequência mantido por
+canal.</p>
+
+<figure class="quadro">
+  <p class="legenda">Decisão de aceitação na unidade receptora
+    (<code>lib/receptor_logic.cpp</code>)</p>
+<pre>static bool sequenciaMaisNova(uint16_t nova, uint16_t ultima) {
+  // trata wraparound do uint16_t
+  return (int16_t)(nova - ultima) &gt; 0;
+}
+
+/* ... */
+
+  // Emissor reiniciou: a sequência dele voltou pro começo, então o histórico
+  // antigo faria descartar os próximos N cliques. Zera tudo.
+  if (!e-&gt;temBootId || pacote.bootId != e-&gt;bootIdConhecido) {
+    e-&gt;bootIdConhecido = pacote.bootId;
+    e-&gt;temBootId       = true;
+    for (int i = 0; i &lt; NUM_CANAIS; i++) {
+      e-&gt;primeiraVez[i] = true;
+    }
+  }
+
+  if (!e-&gt;primeiraVez[pacote.botao] &amp;&amp;
+      !sequenciaMaisNova(pacote.seq, e-&gt;ultimaSeq[pacote.botao])) {
+    return d;  // pacote repetido ou atrasado da rajada, ignora
+  }</pre>
+  <p class="fonte">Fonte: código-fonte do projeto (2026).</p>
+</figure>
+
+<p>A comparação de sequências merece destaque. A subtração é convertida para
+inteiro com sinal antes da comparação, o que trata corretamente o retorno a
+zero do contador de 16 bits: quando a sequência transpõe o valor máximo, a
+diferença calculada continua indicando a ordem correta, ao passo que uma
+comparação direta por magnitude passaria a rejeitar todos os quadros
+subsequentes. O mesmo princípio de aritmética modular para comparação segura
+de números de sequência que se repetem ciclicamente é formalizado, para
+contextos de rede, pela RFC 1982 (Elz; Bush, 1996).</p>
+
+<h1>Segurança</h1>
+
+<p>O tráfego entre as duas unidades é cifrado pelo mecanismo nativo do
+ESP-NOW, aplicado pelo próprio rádio antes da transmissão e desfeito na
+recepção, de maneira transparente para a aplicação — a criptografia não é
+habilitada por padrão e precisa ser configurada explicitamente pelo
+firmware, conforme detalhado nesta seção.</p>
+
+<h2>Modo CCM: confidencialidade e autenticidade</h2>
+
+<p>O algoritmo é o AES de 128 bits operando em modo CCM
+(<em>Counter with CBC-MAC</em>) — o mesmo modo empregado pelo CCMP do WPA2,
+especificado formalmente pela RFC 3610 (Whiting; Housley; Ferguson, 2003) e
+pela publicação especial NIST SP 800-38C (Dworkin, 2004). O modo CCM combina
+duas construções distintas sobre a mesma cifra de bloco. A confidencialidade
+vem do modo contador (CTR), no qual o AES cifra uma sequência de contadores e
+o resultado é combinado por ou-exclusivo com os dados; a autenticidade vem do
+CBC-MAC, que encadeia os blocos para produzir um código de autenticação
+anexado ao quadro.</p>
+
+<p>A propriedade relevante é que a verificação do código de autenticação ocorre
+<em>antes</em> da entrega dos dados à aplicação. Um quadro cujo conteúdo tenha
+sido alterado em trânsito, ou forjado por um terceiro que não possua a chave,
+falha nessa verificação e é descartado pelo rádio, sem jamais alcançar o
+<em>callback</em> de recepção. A cifra, portanto, não protege apenas contra
+escuta: protege sobretudo contra injeção de comandos, que é a ameaça concreta em
+um sistema cuja função é acionar potência à distância.</p>
+
+<h2>Hierarquia de chaves: PMK e LMK</h2>
+
+<p>O ESP-NOW emprega duas chaves de 16 bytes, com papéis distintos. A PMK
+(<em>primary master key</em>) é a chave mestra do dispositivo e serve
+exclusivamente para cifrar a chave de sessão durante o estabelecimento do
+par. A LMK (<em>local master key</em>) é a chave associada a um par
+específico e é a que efetivamente cifra o tráfego daquele enlace. Ambas as
+placas precisam do mesmo conjunto de 32 bytes, sem o qual não há comunicação
+cifrada possível — o cadastro recíproco é obrigatório: sem ele, a unidade
+receptora não dispõe do material necessário para decifrar os quadros, razão
+pela qual ela também precisa conhecer o endereço físico da emissora.</p>
+
+<figure class="quadro">
+  <p class="legenda">Papel das chaves na configuração do enlace</p>
+  <table>
+    <tr><th>Chave</th><th class="num">Bytes</th><th>Configurada por</th><th>Protege</th></tr>
+    <tr><td>PMK</td><td class="num">16</td><td><code>esp_now_set_pmk()</code>, uma vez por placa</td><td>A LMK, durante o estabelecimento do par</td></tr>
+    <tr><td>LMK</td><td class="num">16</td><td><code>esp_now_add_peer()</code>, por par registrado</td><td>A carga útil de cada quadro trocado com aquele par</td></tr>
+  </table>
+  <p class="fonte">Fonte: elaborado pelo autor (2026), a partir da documentação
+    do ESP-NOW.</p>
+</figure>
+
+<p>A geração de chaves é tratada como processo, não como fato isolado: as
+chaves não são versionadas no repositório (<code>lib/chaves.h</code> está
+listado em <code>.gitignore</code>) e são geradas pelo utilitário
+<code>ferramentas/gerar_chaves.py</code>, que consome a fonte de entropia do
+sistema operacional e escreve um cabeçalho local. Como as duas placas
+precisam do mesmo material de 32 bytes, a regeneração das chaves obriga a
+regravar ambas — o esquema é, por construção, um pareamento 1 : 1 entre uma
+emissora e uma receptora específicas, e não escala para topologias com mais
+de duas unidades sem replicar manualmente o mesmo par de chaves em cada nova
+placa. Essa é uma limitação consciente de escopo, tratada na seção de
+limitações e trabalhos futuros: um esquema com mais de duas unidades exigiria
+mecanismo de distribuição e, eventualmente, de rotação de chaves, nenhum dos
+quais está implementado nem seria justificável para um sistema de duas
+placas fisicamente emparelhadas na fabricação.</p>
+
+<p>Para impedir que uma montagem entre em operação com o material de exemplo
+distribuído junto ao código, o <em>firmware</em> verifica a sanidade das
+chaves na inicialização, rejeitando como inseguras as sequências de bytes
+todos nulos, todos em 0xFF e a chave de exemplo versionada em
+<code>chaves.exemplo.h</code>:</p>
+
+<figure class="quadro">
+  <p class="legenda">Verificação de sanidade das chaves
+    (<code>lib/seguranca.h</code>)</p>
+<pre>// true quando a chave claramente não foi trocada: tudo zero, tudo 0xFF ou a
+// chave de exemplo versionada no repositório.
+bool chaveEhInsegura(const uint8_t *chave);</pre>
+  <p class="fonte">Fonte: código-fonte do projeto (2026).</p>
+</figure>
+
+<p>Em qualquer desses casos, o firmware emite advertência destacada na saída
+serial, tanto no emissor quanto no receptor, e o ensaio automatizado trata a
+advertência como falha. A verificação não impede a partida — a chave de
+exemplo ainda cifra o enlace, apenas com material previsível —, mas torna a
+condição impossível de passar despercebida.</p>
+
+<h2>Filtragem do remetente</h2>
+
+<p>A cifra do ESP-NOW cobre apenas os pares registrados na tabela do rádio. Um
+quadro originado de um endereço MAC desconhecido não é rejeitado pela camada
+criptográfica: ele chega ao <em>callback</em> de recepção em claro, exatamente
+como chegaria em um sistema sem cifra alguma. Essa é uma característica do
+protocolo que costuma passar despercebida e que, sozinha, anularia boa parte da
+proteção pretendida.</p>
+
+<p>O receptor fecha essa porta comparando o endereço de origem de todo quadro
+recebido com o endereço esperado do emissor, e descartando de imediato o que não
+corresponder. A comparação é feita em tempo constante — acumulando as
+diferenças de todos os seis bytes por ou-exclusivo antes de decidir, em vez
+de interromper no primeiro byte divergente —, prática que segue o princípio
+descrito por Kocher (1996), segundo o qual a duração de uma comparação que
+interrompe no primeiro byte divergente pode, em princípio, revelar
+informação sobre o valor esperado a um observador que meça o tempo de
+resposta.</p>
+
+<figure class="quadro">
+  <p class="legenda">Verificação de remetente em tempo constante
+    (<code>lib/seguranca.cpp</code>)</p>
+<pre>bool remetenteAutorizado(const uint8_t *remetente, const uint8_t *esperado) {
+  if (remetente == NULL || esperado == NULL) return false;
+
+  // Comparação de tempo constante: não vaza em qual byte divergiu.
+  uint8_t diferenca = 0;
+  for (int i = 0; i &lt; TAM_MAC; i++) {
+    diferenca |= (uint8_t)(remetente[i] ^ esperado[i]);
+  }
+  return diferenca == 0;
+}</pre>
+  <p class="fonte">Fonte: código-fonte do projeto (2026).</p>
+</figure>
+
+<h2>Fluxo completo de um acionamento</h2>
+
+<figure class="figura">
+  <p class="legenda">Percurso de um evento, do botão ao acionamento do modo</p>
+  <div class="desenho">
+    <svg viewBox="0 0 800 600" role="img"
+         aria-label="Fluxograma: evento de botão, montagem do pacote, cifra AES-CCM, transmissão, decifra, filtro de MAC, deduplicação e acionamento do transistor">
+      <g fill="none" stroke="#000" stroke-width="2">
+        <!-- caixas do emissor -->
+        <rect x="70" y="60" width="230" height="50" rx="4"/>
+        <rect x="70" y="130" width="230" height="50" rx="4"/>
+        <rect x="70" y="200" width="230" height="50" rx="4"/>
+        <rect x="70" y="270" width="230" height="50" rx="4"/>
+        <!-- caixas do receptor -->
+        <rect x="450" y="270" width="230" height="50" rx="4"/>
+        <rect x="450" y="340" width="230" height="50" rx="4"/>
+        <rect x="450" y="410" width="230" height="50" rx="4"/>
+        <rect x="450" y="480" width="230" height="50" rx="4"/>
+        <!-- setas verticais do emissor -->
+        <line x1="185" y1="110" x2="185" y2="124"/>
+        <line x1="185" y1="180" x2="185" y2="194"/>
+        <line x1="185" y1="250" x2="185" y2="264"/>
+        <!-- enlace -->
+        <line x1="300" y1="295" x2="444" y2="295"/>
+        <!-- setas verticais do receptor -->
+        <line x1="565" y1="320" x2="565" y2="334"/>
+        <line x1="565" y1="390" x2="565" y2="404"/>
+        <line x1="565" y1="460" x2="565" y2="474"/>
+        <!-- ramos de descarte -->
+        <line x1="680" y1="365" x2="714" y2="365"/>
+        <line x1="680" y1="435" x2="714" y2="435"/>
+      </g>
+      <g fill="#000" stroke="none">
+        <polygon points="185,130 178,116 192,116"/>
+        <polygon points="185,200 178,186 192,186"/>
+        <polygon points="185,270 178,256 192,256"/>
+        <polygon points="450,295 436,288 436,302"/>
+        <polygon points="565,340 558,326 572,326"/>
+        <polygon points="565,410 558,396 572,396"/>
+        <polygon points="565,480 558,466 572,466"/>
+        <polygon points="720,365 706,358 706,372"/>
+        <polygon points="720,435 706,428 706,442"/>
+      </g>
+      <g font-family="Times New Roman, serif" text-anchor="middle">
+        <text x="185" y="38" font-size="15" font-weight="bold">UNIDADE EMISSORA</text>
+        <text x="565" y="38" font-size="15" font-weight="bold">UNIDADE RECEPTORA</text>
+
+        <text x="185" y="82" font-size="14">Evento de botão</text>
+        <text x="185" y="100" font-size="12">borda validada por debounce</text>
+        <text x="185" y="152" font-size="14">Monta a carga útil — 8 bytes</text>
+        <text x="185" y="170" font-size="12">bootId · canal · estado · seq</text>
+        <text x="185" y="222" font-size="14">Cifra AES-CCM com a LMK</text>
+        <text x="185" y="240" font-size="12">aplicada pelo rádio</text>
+        <text x="185" y="292" font-size="14">Transmite — canal 1</text>
+        <text x="185" y="310" font-size="12">rajada de 3 quadros unicast</text>
+
+        <text x="565" y="292" font-size="14">Decifra e autentica</text>
+        <text x="565" y="310" font-size="12">quadro adulterado não passa</text>
+        <text x="565" y="362" font-size="14">Filtra o MAC do remetente</text>
+        <text x="565" y="380" font-size="12">comparação em tempo constante</text>
+        <text x="565" y="432" font-size="14">Deduplica por bootId e seq</text>
+        <text x="565" y="450" font-size="12">absorve as repetições da rajada</text>
+        <text x="565" y="502" font-size="14">Aciona a base de Q1 ou Q2</text>
+        <text x="565" y="520" font-size="12">modo do brinquedo liga ou desliga</text>
+
+        <text x="376" y="285" font-size="13">enlace cifrado</text>
+      </g>
+      <g font-family="Times New Roman, serif" font-size="12" text-anchor="start">
+        <text x="726" y="369">descarta</text>
+        <text x="726" y="439">descarta</text>
+      </g>
+    </svg>
+  </div>
+  <p class="fonte">Fonte: elaborado pelo autor (2026).</p>
+</figure>
+
+<h2>Alcance e limites da proteção</h2>
+
+<p>Convém delimitar com honestidade o que o mecanismo protege. Um observador
+sem as chaves não consegue ler o conteúdo dos quadros nem forjar comandos
+aceitáveis pelo receptor, e o filtro de remetente cobre a lacuna dos quadros
+não cifrados de origem desconhecida. A repetição íntegra de um quadro
+legítimo capturado anteriormente é absorvida pela deduplicação por
+sequência, embora esta tenha sido projetada para a rajada, e não como
+contramedida deliberada de reprodução — distinção relevante à luz de
+achados recentes: Nozomi Networks (2024) divulgou uma vulnerabilidade de
+repetição de quadros no próprio ESP-NOW (CVE-2024-42483), decorrente de o
+cache de deduplicação nativo do protocolo não diferenciar tipos de mensagem
+entre si. O mecanismo de deduplicação por <code>bootId</code> e número de
+sequência descrito neste documento é específico da aplicação, não do
+ESP-NOW, e não foi avaliado contra esse cenário de ataque; tratá-lo como
+contramedida formal de repetição, sem esse exame, seria uma alegação não
+sustentada. Chatue <em>et al.</em> (2025) discutem reforço criptográfico
+adicional sobre o ESP-NOW nessa mesma direção, e são apontados como leitura
+de referência para trabalhos futuros de reforço do enlace.</p>
+
+<p>Por outro lado, as chaves são compiladas no <em>firmware</em> e residem na
+memória <em>flash</em> das placas, sem cifragem — cobrir esse caso exigiria
+habilitar a cifragem de <em>flash</em>, o que demandaria migrar a compilação
+para o ESP-IDF puro. Quem obtenha acesso físico a qualquer uma das unidades e
+consiga ler essa memória recupera o material criptográfico integral, e a
+partir daí toda a proteção do enlace se perde. Não há, tampouco, rotação
+automática de chaves: a troca é manual e exige regravar as duas placas. Para o
+escopo do projeto — um brinquedo acionado à distância em ambiente controlado —
+esse nível de proteção é adequado, e o registro desta limitação tem o propósito
+de evitar que o mecanismo seja transposto, sem exame, para aplicações de
+requisito mais severo.</p>
+
+<h1>Identificação e diagnóstico na inicialização</h1>
+
+<p>Cada unidade imprime, ao iniciar, um bloco de identificação contendo o papel
+que desempenha, seu endereço físico e o identificador de inicialização, seguido
+do canal de rádio, dos pinos em uso e do endereço da unidade correspondente.
+O bloco existe para tornar imediatamente visível a troca acidental de firmware
+entre as placas.</p>
+
+<p>A obtenção do endereço físico exigiu correção durante os ensaios. A função
+<code>WiFi.macAddress()</code> retorna o endereço da interface de estação, que
+só passa a ser válido depois que a interface de rede é efetivamente
+inicializada, alguns milissegundos após a chamada que seleciona o modo de
+operação. No ESP32-C3 esse intervalo era absorvido pelas operações
+intermediárias, mas na placa ESP32 clássica a leitura ocorria cedo demais e
+produzia endereço nulo.</p>
+
+<figure class="quadro">
+  <p class="legenda">Leitura do endereço físico a partir da memória de fábrica
+    (<code>emissor/emissor.ino</code>)</p>
+<pre>// Lê o próprio MAC uma vez e reusa: no banner e na checagem de identidade.
+// NÃO usar WiFi.macAddress() aqui: no ESP32 clássico ela devolve zeros até o
+// netif da STA subir, o que só acontece alguns milissegundos depois de
+// WiFi.mode(). esp_read_mac() lê da efuse e vale desde o primeiro instante,
+// nos dois alvos — e é o mesmo valor que o ESP-NOW usa como remetente.
+uint8_t meuMac[6];
+esp_read_mac(meuMac, ESP_MAC_WIFI_STA);</pre>
+  <p class="fonte">Fonte: código-fonte do projeto (2026).</p>
+</figure>
+
+<p>A solução adotada lê o endereço diretamente da memória de fábrica do chip,
+cujo conteúdo está disponível desde o primeiro instante da execução e independe
+do estado da pilha de rede. O valor obtido é o mesmo que o ESP-NOW emprega como
+remetente, o que preserva a coerência entre o que a unidade informa e o que ela
+efetivamente transmite.</p>
+
+<h1>Verificação</h1>
+
+<h2>Testes na máquina de desenvolvimento</h2>
+
+<p>A lógica isolada em <code>lib/</code> é exercitada por uma bateria de
+quarenta e oito testes, compilados com <code>g++</code> por um framework
+próprio e mínimo (<code>test/framework.h</code>, sem dependências externas) e
+executados sem hardware. A execução é imediata e não requer placa conectada,
+o que permite verificar regressões antes de qualquer gravação. Trata-se do
+primeiro nível de defesa: uma falha detectada aqui dispensa integralmente o
+ciclo de compilação e gravação.</p>
+
+<figure class="quadro">
+  <p class="legenda">Distribuição dos 48 testes de host por arquivo e responsabilidade</p>
+  <table>
+    <tr><th>Arquivo</th><th class="num">Testes</th><th>Responsabilidade coberta</th></tr>
+    <tr><td><code>test_debounce.cpp</code></td><td class="num">8</td><td>Máquina de estados de <em>debounce</em>: estabilização, alternância de estado, incremento de sequência, rejeição de ruído, retorno ao zero (<em>wraparound</em>) de <code>millis()</code></td></tr>
+    <tr><td><code>test_receptor.cpp</code></td><td class="num">12</td><td>Deduplicação por sequência e <code>bootId</code>, rejeição de canal e tamanho inválidos, reinício de sequência após reboot do emissor, independência entre canais</td></tr>
+    <tr><td><code>test_seguranca.cpp</code></td><td class="num">8</td><td>Verificação de remetente em tempo constante, detecção de chave insegura (zerada, 0xFF, chave de exemplo)</td></tr>
+    <tr><td><code>test_identidade.cpp</code></td><td class="num">15</td><td>Montagem do banner de identificação, formatação e detecção de endereço MAC (placeholder, zerado, broadcast), limites de buffer</td></tr>
+    <tr><td><code>test_integracao.cpp</code></td><td class="num">5</td><td>Fluxo completo simulado — clique, rajada, dois canais independentes, reinício do emissor — sem envolver rádio nem hardware real</td></tr>
+  </table>
+  <p class="fonte">Fonte: elaborado pelo autor, a partir dos nomes de teste
+    registrados em <code>test/*.cpp</code> (2026).</p>
+</figure>
+
+<h2>Ensaio automatizado ponta a ponta</h2>
+
+<p>O segundo nível é um ensaio que grava as duas unidades, reinicia ambas por
+meio das linhas de controle da porta serial e verifica, na saída de cada uma,
+que a identificação corresponde ao papel esperado, que a criptografia foi
+efetivamente habilitada, que nenhuma advertência de configuração pendente foi
+emitida e que um evento gerado na emissora produziu o acionamento correspondente
+na receptora.</p>
+
+<p>Para dispensar a intervenção humana, a unidade emissora é gravada com uma
+variante que injeta eventos sintéticos (compilada sob a macro
+<code>DINO_SMOKETEST</code>, isolada do <em>firmware</em> normal), e ao final
+o firmware normal é restaurado automaticamente.</p>
+
+<figure class="tabela">
+  <p class="legenda">Resultado do ensaio automatizado ponta a ponta</p>
+  <table>
+    <tr><th>Verificação</th><th>Resultado</th></tr>
+    <tr><td>Unidade emissora identifica-se corretamente</td><td>Aprovado</td></tr>
+    <tr><td>Unidade receptora identifica-se corretamente</td><td>Aprovado</td></tr>
+    <tr><td>Criptografia ativa na transmissão</td><td>Aprovado</td></tr>
+    <tr><td>Criptografia ativa na recepção</td><td>Aprovado</td></tr>
+    <tr><td>Ausência de advertências de configuração</td><td>Aprovado</td></tr>
+    <tr><td>Acionamento da saída do canal 0</td><td>Aprovado</td></tr>
+    <tr><td>Acionamento da saída do canal 1</td><td>Aprovado</td></tr>
+    <tr><td>Confirmação de entrega dos quadros</td><td>Não exigida<sup>(1)</sup></td></tr>
+  </table>
+  <p class="fonte">Fonte: dados obtidos pelo autor em ensaio de bancada (2026).<br>
+    <sup>(1)</sup> O protocolo de aplicação transmite estado absoluto com
+    repetição deliberada e, por construção, não depende de confirmação de
+    entrega. O ensaio dispõe de opção específica que suprime essa exigência.</p>
+</figure>
+
+<h2>Ensaios de diagnóstico</h2>
+
+<p>O repositório conserva duas ferramentas de diagnóstico que se mostraram
+decisivas durante o desenvolvimento. A primeira realiza ensaio de
+radiofrequência puro, sem ESP-NOW, colocando uma placa como ponto de acesso e a
+outra como varredora; é o procedimento que separa falha de rádio de falha de
+software em poucos minutos, relatado a seguir. A segunda configura simultaneamente
+todos os pinos utilizáveis como entrada e relata transições de nível, permitindo
+localizar a ligação física real quando o acionamento não produz efeito.</p>
+
+<h2>Ensaio de radiofrequência</h2>
+
+<p>O projeto foi originalmente concebido com duas placas ESP32-C3 e, na etapa de
+integração inicial, as unidades não estabeleceram comunicação. O procedimento de
+investigação adotado é registrado aqui por constituir método reaproveitável: as
+hipóteses foram eliminadas em ordem de custo crescente, começando pelas causas de
+<em>software</em>. O comportamento persistiu com a criptografia desabilitada, com
+a economia de energia do rádio desligada em ambos os lados e com o canal fixado
+explicitamente, o que afastou a configuração do enlace como causa. A troca de
+papéis entre as placas produziu resultado simétrico, afastando também a hipótese
+de defeito isolado em uma das unidades.</p>
+
+<p>Esgotadas as causas de <em>software</em>, a questão foi decidida por um ensaio
+de radiofrequência puro, sem ESP-NOW, no qual uma placa opera como ponto de
+acesso e a outra executa varredura de redes. O valor do procedimento está em
+isolar o rádio da pilha de protocolo: como a varredura não depende de nenhuma
+configuração do ESP-NOW, o resultado caracteriza diretamente o desempenho da
+camada física de cada unidade.</p>
+
+<figure class="tabela">
+  <p class="legenda">Extrato da varredura de redes com a unidade receptora
+    operando como ponto de acesso</p>
+  <table>
+    <tr><th>Rede detectada</th><th class="num">RSSI (dBm)</th><th class="num">Canal</th></tr>
+    <tr><td>Galaxy S23 FE 3B1E</td><td class="num">−48</td><td class="num">6</td></tr>
+    <tr><td>CEUB</td><td class="num">−78</td><td class="num">1</td></tr>
+    <tr><td>UniCEUB-visitante</td><td class="num">−78</td><td class="num">1</td></tr>
+    <tr><td>moto g(6) play 1796</td><td class="num">−85</td><td class="num">1</td></tr>
+    <tr><td>motorola edge 60_4370</td><td class="num">−94</td><td class="num">6</td></tr>
+    <tr><td><strong>DINO-TESTE-RF</strong> (alvo)</td><td class="num">não detectada</td><td class="num">1</td></tr>
+  </table>
+  <p class="fonte">Fonte: dados obtidos pelo autor em ensaio de bancada (2026).</p>
+</figure>
+
+<p>O resultado é conclusivo. O receptor da unidade que executa a varredura
+apresenta sensibilidade excelente, detectando onze redes, entre elas uma a
+−94 dBm, próxima ao limite de sensibilidade do rádio. Ainda assim, o ponto de
+acesso situado a poucos centímetros permaneceu invisível em seis varreduras
+consecutivas. Conclui-se que a recepção é plena e a transmissão é inoperante.</p>
+
+<p>O ensaio consolidou a repartição de papéis descrita neste documento. A ESP32
+clássica assumiu a função emissora, externa e sem restrição de espaço, onde a
+pinagem mais larga acomoda os botões e eventual expansão do painel de comando; a
+ESP32-C3 permaneceu na função receptora, embarcada no brinquedo, onde a
+compacidade e a dispensa de conversor USB-serial são determinantes. A
+configuração resultante foi validada em seguida pelo ensaio funcional.</p>
+
+<h2>Verificação de continuidade dos pinos</h2>
+
+<p>Durante o ensaio funcional, os acionamentos dos botões não produziam qualquer
+efeito, e os contadores de diagnóstico do firmware permaneciam zerados —
+inclusive o contador de eventos descartados por fila cheia e o de erro de
+transmissão. A ausência simultânea de eventos e de erros indicava que a máquina
+de estados de <em>debounce</em> jamais observara uma borda, ou seja, que o
+problema antecedia o rádio.</p>
+
+<p>Para localizar a ligação real, foi gravado na unidade emissora um sketch de
+varredura que configura simultaneamente todos os pinos utilizáveis da placa como
+entrada e relata qualquer transição de nível. O ensaio identificou atividade
+exclusivamente em GPIO4 e GPIO5, com transições limpas e completas em ambos os
+sentidos, e nenhuma atividade nos demais dezenove pinos monitorados.</p>
+
+<p>Constatou-se, assim, que a montagem seguia o pinout de uma versão anterior do
+projeto, quando a unidade emissora era também um ESP32-C3. Os pinos declarados
+no firmware foram corrigidos para corresponder à montagem física.</p>
+
+<h2>Ensaio funcional</h2>
+
+<p>Concluída a correção, procedeu-se ao ensaio funcional com acionamento manual
+dos botões, registrando simultaneamente a saída serial das duas unidades. O
+ensaio foi conduzido com o estágio de potência substituído por indicadores
+luminosos ligados diretamente a GPIO6 e GPIO7, de modo a tornar cada transição
+visualmente verificável sem envolver a carga do brinquedo. A grandeza medida é,
+portanto, o nível lógico do pino que comanda a base do transistor — exatamente o
+sinal de que Q1 e Q2 dependem —, e o ensaio valida a cadeia completa do botão até
+esse pino.</p>
+
+<figure class="tabela">
+  <p class="legenda">Resultado do ensaio funcional com acionamento manual</p>
+  <table>
+    <tr>
+      <th>Grandeza observada</th>
+      <th class="num">Canal 0<br>(GPIO4 → GPIO6)</th>
+      <th class="num">Canal 1<br>(GPIO5 → GPIO7)</th>
+    </tr>
+    <tr><td>Eventos gerados na unidade emissora</td><td class="num">14</td><td class="num">14</td></tr>
+    <tr><td>Transições de saída na unidade receptora</td><td class="num">14</td><td class="num">14</td></tr>
+    <tr><td>Eventos perdidos por fila cheia</td><td class="num">0</td><td class="num">0</td></tr>
+    <tr><td>Erros de transmissão</td><td class="num">0</td><td class="num">0</td></tr>
+    <tr><td>Quadros descartados na recepção</td><td class="num">0</td><td class="num">0</td></tr>
+  </table>
+  <p class="fonte">Fonte: dados obtidos pelo autor em ensaio de bancada (2026).</p>
+</figure>
+
+<p>A correspondência é integral: cada acionamento produziu exatamente uma
+transição na saída correspondente, sem perdas em nenhum estágio da cadeia.
+Os 28 eventos, transmitidos em rajadas de três quadros, totalizam 84 quadros,
+número que coincide com o contador de quadros emitidos, confirmando que nenhum
+quadro deixou de ser enviado.</p>
+
+<p class="nota">Sobre a profundidade de fila: o firmware instrumenta e relata
+periodicamente, pela saída serial, tanto o número de eventos descartados por
+fila cheia quanto o número de posições livres na fila no momento do relato
+(<code>fila_livre</code>, na unidade receptora; <code>eventosPerdidos</code>,
+na emissora) — ver seção de arquitetura de tempo real. O valor mínimo de
+posições livres efetivamente observado durante o ensaio funcional não foi
+registrado nos dados coletados; o dado disponível é o contador de eventos
+perdidos, que permaneceu em zero durante todo o ensaio. Como o acionamento
+manual dos botões opera em escala de centenas de milissegundos entre
+cliques — muito acima do período de amostragem de 5 ms e da rajada de
+15 ms × 3 —, é esperado que a fila de 16 posições jamais se aproxime da
+saturação nesse regime; um ensaio futuro que capture explicitamente
+<code>fila_livre</code> ao longo do tempo forneceria a profundidade máxima
+efetivamente atingida, em vez de apenas o resultado binário de saturação
+ou não.</p>
+
+<p class="nota">Sobre a latência: o firmware não mede fim a fim o intervalo
+entre o fechamento do contato e o acionamento da saída, mas os parâmetros de
+projeto permitem uma estimativa por cálculo, a ser tratada como tal e não
+como medição direta. A confirmação de uma borda pela máquina de
+<em>debounce</em> exige estabilidade da leitura por 40 ms, verificada a cada
+ciclo de amostragem de 5 ms; no pior caso, a confirmação ocorre até um
+período de amostragem depois de decorridos os 40 ms, ou seja, em até
+aproximadamente 45 ms após a estabilização mecânica do contato. A esse valor
+soma-se o tempo de trânsito do primeiro quadro pelo enlace ESP-NOW, que a
+literatura reporta como da ordem de poucos a algumas dezenas de milissegundos,
+a depender das condições de propagação (Urazayev <em>et al.</em>, 2023); o
+tempo de escalonamento da tarefa de envio, de prioridade mais baixa que a de
+amostragem mas sem outra carga concorrente na CPU nesse instante, é
+desprezível diante dos dois primeiros termos. A latência total estimada
+entre o fim do repique mecânico e o acionamento do modo correspondente é,
+portanto, dominada pela janela de debounce, da ordem de algumas dezenas de
+milissegundos.</p>
+
+<h1>Limitações e trabalhos futuros</h1>
+
+<p>Esta seção reúne, em um único lugar, todos os pontos em que a montagem ou
+o firmware ainda não estão plenamente caracterizados, ou em que a solução
+adotada tem alcance deliberadamente restrito ao escopo do projeto —
+inclusive os já mencionados de passagem nas seções técnicas anteriores.</p>
+
+<p><strong>Caracterização elétrica da carga.</strong> A tensão e a corrente de
+alimentação do brinquedo não foram medidas. Os cálculos de dimensionamento do
+resistor de base e de dissipação em saturação apresentados nas seções
+correspondentes são, por isso, estimativas baseadas em valores plausíveis, e
+não verificações — assim identificados explicitamente onde aparecem. A margem
+de dimensionamento é ampla, e não depende da tensão de alimentação — a base
+sustenta cerca de 3,9 A de coletor contra as dezenas ou poucas centenas de
+miliampères esperadas de um brinquedo de pequeno porte —, mas a confirmação
+da tensão residual entregue à carga e da dissipação real do transistor
+depende dessas duas medidas, ainda pendentes.</p>
+
+<p><strong>Ausência de intertravamento em <em>hardware</em> entre os dois
+modos.</strong> Os ramos de saída são independentes por construção, e nada
+impede eletricamente que Q1 e Q2 conduzam simultaneamente; a decisão de
+permitir ou não essa combinação está inteiramente no protocolo de aplicação.
+Caso a inspeção do brinquedo revele que a combinação simultânea dos dois
+modos é indesejável, a restrição deverá ser imposta em firmware ou por um
+estágio lógico adicional.</p>
+
+<p><strong>Alcance do enlace não levantado quantitativamente.</strong> Os
+ensaios ocorreram em bancada, com as unidades a poucos metros uma da outra.
+O ensaio de radiofrequência relatado na seção de verificação isolou rádio de
+protocolo e foi decisivo para diagnosticar a falha de transmissão de uma das
+placas, mas não mediu RSSI nem taxa de perda de pacote em função da
+distância para o enlace ESP-NOW efetivamente usado pela aplicação. A
+distância máxima de operação confiável, em especial na presença de
+obstáculos, permanece por determinar; Urazayev <em>et al.</em> (2023) e
+demais referências citadas no referencial teórico oferecem valores de
+literatura para efeito de comparação, mas não substituem a medição direta
+deste enlace específico.</p>
+
+<p><strong>Latência e profundidade de fila estimadas, não medidas
+diretamente.</strong> Como detalhado na seção de verificação, a latência
+entre o acionamento do botão e a resposta do modo é uma estimativa por
+cálculo a partir dos parâmetros de projeto (janela de debounce, período de
+amostragem, literatura sobre o enlace), e a profundidade máxima de fila
+efetivamente atingida durante os ensaios não foi capturada — apenas o
+resultado binário de que nenhum evento foi perdido. O firmware já expõe os
+contadores necessários (<code>fila_livre</code>, <code>eventosPerdidos</code>)
+para que um ensaio futuro registre essas séries ao longo do tempo.</p>
+
+<p><strong>Recuperação de estado após reinicialização independente do
+receptor.</strong> O protocolo se recupera automaticamente de perda de
+quadro e de reinicialização da unidade <em>emissora</em>, por transmitir
+estado absoluto e por invalidar a sequência antiga a cada novo
+<code>bootId</code>. O caso simétrico — a unidade <em>receptora</em> reiniciar
+de forma independente, por exemplo por queda momentânea de sua própria
+alimentação — não tem mecanismo de correção ativo: não há
+<em>heartbeat</em> nem consulta periódica de estado, de modo que, após esse
+tipo de evento, o estado dos dois modos do brinquedo só volta a corresponder
+ao que o operador espera quando um botão for pressionado novamente. Como o
+estado de repouso de fábrica dos pinos de saída é sempre "desligado" (ver
+seção de circuito de saída), o pior caso é o brinquedo permanecer desligado
+até o próximo clique, nunca um acionamento espúrio — mas a divergência em si
+não é corrigida sozinha. Adicionar retransmissão periódica de estado pela
+unidade emissora, ou consulta de estado pela receptora ao reiniciar, é
+trabalho futuro natural.</p>
+
+<p><strong>Pareamento de chaves não escala além de duas unidades.</strong>
+Como discutido na seção de segurança, a geração de PMK/LMK é local e manual,
+e o esquema é 1 : 1 por construção. Um sistema com mais de uma unidade
+emissora ou receptora exigiria mecanismo de distribuição de chaves e,
+possivelmente, rotação periódica — nenhum dos dois está implementado, por
+não se justificar no escopo atual de duas placas fisicamente
+emparelhadas.</p>
+
+<p><strong>Cifragem de <em>flash</em> não habilitada.</strong> As chaves
+PMK/LMK residem em texto claro na memória <em>flash</em> de cada placa.
+Acesso físico a qualquer uma das unidades compromete o material
+criptográfico integral. Habilitar a cifragem de <em>flash</em> do ESP-IDF
+resolveria essa exposição, ao custo de migrar a compilação para fora do
+núcleo Arduino simplificado atualmente empregado.</p>
+
+<p><strong>Ausência de campo de versão no protocolo de aplicação.</strong> A
+estrutura <code>pacote_t</code> não reserva um campo de versão. Nada impede,
+hoje, que um firmware de uma geração futura, com layout de pacote diferente,
+seja gravado em uma das duas placas sem que a outra detecte a
+incompatibilidade — o quadro seria simplesmente interpretado com os
+<em>offsets</em> errados. Adicionar um campo de versão, verificado antes da
+deduplicação, é trabalho futuro de baixo custo.</p>
+
+<p><strong>Gestão de energia do firmware não explorada.</strong> Nem a
+unidade emissora nem a receptora empregam modos de baixo consumo do ESP32
+(<em>light sleep</em>, <em>duty cycling</em> da amostragem). Para um
+brinquedo presumivelmente alimentado por bateria, isso é relevante para a
+autonomia entre cargas e não foi avaliado neste trabalho.</p>
+
+<p><strong>Watchdog, condição de <em>brown-out</em> e dimensionamento de
+pilha das tarefas não discutidos.</strong> O projeto não configura
+explicitamente watchdog de aplicação nem examina o comportamento sob queda
+parcial de tensão de alimentação lógica, e o dimensionamento da pilha de
+cada tarefa FreeRTOS (parâmetro fixo na criação, ver arquitetura de tempo
+real) não foi validado por medição de uso de pico. Nenhuma falha relacionada
+foi observada nos ensaios realizados, mas a ausência de observação não
+equivale a garantia sob condições não testadas.</p>
+
+<p><strong>Validade interna dos ensaios.</strong> Os testes de host, o
+ensaio automatizado e os ensaios de bancada foram projetados, executados e
+interpretados pelo mesmo autor responsável pela implementação, sem revisão
+independente por terceiros. Isso é declarado explicitamente como limitação
+metodológica, não como uma falha de execução.</p>
+
+<h1>Considerações finais</h1>
+
+<p>Os objetivos específicos definidos na introdução foram alcançados dentro
+do escopo verificado experimentalmente. O estágio de potência foi
+dimensionado e validado quanto à margem de acionamento da base — a parte do
+dimensionamento que não depende da caracterização ainda pendente da carga. O
+protocolo de aplicação sobre o ESP-NOW mostrou-se tolerante a perda de
+quadro e a reinicialização da unidade emissora, por transmitir estado
+absoluto com deduplicação por sequência e identificador de inicialização. O
+mecanismo de cifragem nativo do ESP-NOW foi habilitado e complementado por
+verificação explícita de remetente em tempo constante, com o alcance e os
+limites dessa proteção delimitados com honestidade na seção de segurança. A
+separação entre lógica pura e chamadas de plataforma foi a decisão de
+projeto de maior retorno: viabilizou a bateria de 48 testes de execução
+imediata, e essa bateria sustentou, sem regressões, todas as correções
+aplicadas durante os ensaios de bancada — incluindo a substituição do
+mecanismo de leitura do endereço físico e a redefinição dos pinos de
+entrada.</p>
+
+<p>A arquitetura de tarefas, por sua vez, mostrou-se adequada ao requisito de
+não perder acionamentos durante a transmissão: os ensaios com acionamento
+manual não registraram evento perdido por fila cheia em nenhum momento. As
+limitações que permanecem — caracterização elétrica da carga, alcance
+quantitativo do enlace, recuperação de estado após reinicialização
+independente do receptor, entre as demais listadas na seção anterior — são
+delimitadas com a mesma precisão com que os resultados obtidos são
+relatados, de modo que o que falta verificar fique tão claro quanto o que já
+foi.</p>
+
+<h1 class="sem-numero">Referências</h1>
+
+<div class="referencias">
+
+<p>ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS. <strong>NBR 6023</strong>:
+informação e documentação: referências: elaboração. Rio de Janeiro, 2018.</p>
+
+<p>ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS. <strong>NBR 6024</strong>:
+informação e documentação: numeração progressiva das seções de um documento:
+apresentação. Rio de Janeiro, 2012.</p>
+
+<p>ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS. <strong>NBR 6027</strong>:
+informação e documentação: sumário: apresentação. Rio de Janeiro, 2012.</p>
+
+<p>ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS. <strong>NBR 6028</strong>:
+informação e documentação: resumo: apresentação. Rio de Janeiro, 2021.</p>
+
+<p>ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS. <strong>NBR 14724</strong>:
+informação e documentação: trabalhos acadêmicos: apresentação. Rio de Janeiro,
+2011.</p>
+
+<p>BARR, Michael. <strong>Programming embedded systems in C and C++</strong>.
+Sebastopol: O'Reilly, 1999.</p>
+
+<p>CHATUE, Laura Motso; EWO, Roland Christian Gamom Ngounou; NNEME, Leandre
+Nneme; DADA, Nelson; TEKAM, Valdez Wilsons Fotso. Cryptographic Algorithm
+Grafted onto the ESP-NOW Protocol for Security Optimization in Wireless
+Sensor Network Chains. <strong>Journal of Information Security</strong>, v.
+16, n. 2, p. 313-329, 2025. DOI: 10.4236/jis.2025.162016.</p>
+
+<p>DWORKIN, Morris. <strong>Recommendation for block cipher modes of
+operation</strong>: the CCM mode for authentication and confidentiality. NIST
+Special Publication 800-38C. Gaithersburg: National Institute of Standards
+and Technology, 2004 (atualizada em 2007). Disponível em:
+https://csrc.nist.gov/pubs/sp/800/38/c/upd1/final. Acesso em: 7 ago.
+2026.</p>
+
+<p>ELZ, Robert; BUSH, Randy. <strong>Serial number arithmetic</strong>. RFC
+1982. Internet Engineering Task Force, 1996. Disponível em:
+https://www.rfc-editor.org/rfc/rfc1982. Acesso em: 7 ago. 2026.</p>
+
+<p>ESPRESSIF SYSTEMS. <strong>ESP32 series datasheet</strong>. Shanghai, [2026].
+Disponível em:
+https://www.espressif.com/sites/default/files/documentation/esp32_datasheet_en.pdf.
+Acesso em: 7 ago. 2026.</p>
+
+<p>ESPRESSIF SYSTEMS. <strong>ESP32-C3 series datasheet</strong>. Shanghai,
+[2026]. Disponível em:
+https://www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf.
+Acesso em: 7 ago. 2026.</p>
+
+<p>ESPRESSIF SYSTEMS. <strong>ESP-IDF programming guide</strong>. Shanghai,
+[2026]. Disponível em: https://docs.espressif.com/projects/esp-idf/en/latest/.
+Acesso em: 7 ago. 2026.</p>
+
+<p>ESPRESSIF SYSTEMS. <strong>ESP-NOW user guide</strong>. Shanghai, [2026].
+Disponível em:
+https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_now.html.
+Acesso em: 7 ago. 2026.</p>
+
+<p>GANSSLE, Jack. <strong>Debouncing contacts and switches in embedded
+systems</strong>. The Ganssle Group, [2026]. Disponível em:
+https://www.ganssle.com/item/debouncing-switches-contacts-code.htm. Acesso
+em: 7 ago. 2026.</p>
+
+<p>INTERNATIONAL ELECTROTECHNICAL COMMISSION. <strong>IEC 60617</strong>:
+graphical symbols for diagrams. Genebra, 2012.</p>
+
+<p>KOCHER, Paul C. Timing attacks on implementations of Diffie-Hellman, RSA,
+DSS, and other systems. In: KOBLITZ, Neal (ed.). <strong>Advances in
+Cryptology — CRYPTO '96</strong>. Berlim: Springer, 1996. (Lecture Notes in
+Computer Science, v. 1109). p. 104-113. DOI: 10.1007/3-540-68697-5_9.</p>
+
+<p>LIU, Chung Laung; LAYLAND, James W. Scheduling algorithms for
+multiprogramming in a hard-real-time environment. <strong>Journal of the
+ACM</strong>, v. 20, n. 1, p. 46-61, 1973.</p>
+
+<p>NOZOMI NETWORKS LABS. <strong>ESP-NOW protocol analysis and vulnerability
+research</strong>. [S. l.], 2024. Disponível em:
+https://www.nozominetworks.com/resources/esp-now-protocol-analysis-and-vulnerability-research.
+Acesso em: 7 ago. 2026.</p>
+
+<p>OLIVEIRA, G.; LIMA, G. Scheduling and energy savings for small scale
+embedded FreeRTOS-based real-time systems. <strong>Design Automation for
+Embedded Systems</strong>, 2023. DOI: 10.1007/s10617-023-09267-7.</p>
+
+<p>REAL TIME ENGINEERS LTD. <strong>The FreeRTOS reference manual</strong>.
+[S. l.], 2017. Disponível em: https://www.freertos.org/Documentation/. Acesso
+em: 7 ago. 2026.</p>
+
+<p>URAZAYEV, Dnislam; EDUARD, Aida; AHSAN, Muhammad; ZORBAS, Dimitrios.
+Indoor performance evaluation of ESP-NOW. In: IEEE INTERNATIONAL CONFERENCE
+ON SMART INFORMATION SYSTEMS AND TECHNOLOGIES (SIST), 2023, Astana. <strong>
+Anais [...]</strong>. [S. l.]: IEEE, 2023. DOI:
+10.1109/SIST58284.2023.10223585.</p>
+
+<p>WHITING, Doug; HOUSLEY, Russell; FERGUSON, Niels. <strong>Counter with
+CBC-MAC (CCM)</strong>. RFC 3610. Internet Engineering Task Force, 2003.
+Disponível em: https://www.rfc-editor.org/info/rfc3610/. Acesso em: 7 ago.
+2026.</p>
+
+</div>

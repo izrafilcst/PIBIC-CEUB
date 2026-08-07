@@ -31,21 +31,23 @@ IDE do Arduino só compila arquivos que estejam dentro da pasta do sketch.
 
 ## Documentação
 
-Documentos em padrão ABNT, um por camada. O HTML é a **fonte de verdade**; o
-`.docx` é gerado a partir dele para entrega no PIBIC.
+Documento único em padrão ABNT (hardware e software deixaram de ser dois
+relatórios separados: o protocolo e a criptografia são decisão de firmware,
+não de camada física, então vivem junto do resto do firmware). O HTML é a
+**fonte de verdade**; o `.docx` é gerado a partir dele para entrega no PIBIC.
 
 | Documento | Conteúdo |
 |---|---|
-| [`docs/hardware.html`](docs/hardware.html) | Esquemáticos em SVG vetorial (simbologia IEC), dimensionamento do `pull-up` interno e do resistor de base, estágio TIP122, protocolo ESP-NOW e criptografia, ensaios de RF e funcional |
-| [`docs/software.html`](docs/software.html) | Arquitetura FreeRTOS, protocolo de aplicação, segurança em software, trechos comentados do código, verificação |
+| [`docs/relatorio.html`](docs/relatorio.html) | Resumo, objetivos, referencial teórico, esquemáticos em SVG vetorial (simbologia IEC), dimensionamento do `pull-up` interno e do resistor de base, estágio TIP122, arquitetura FreeRTOS, protocolo ESP-NOW e criptografia, verificação (testes de host, ensaios de RF e funcional), limitações e trabalhos futuros |
 | [`docs/diagnostico-rf-esp32c3.md`](docs/diagnostico-rf-esp32c3.md) | Registro bruto da depuração do par de C3 |
 
-Os `.docx` correspondentes (`docs/hardware.docx`, `docs/software.docx`) saem em
-A4 com margens 3/2/2/3 cm, Times 12, entrelinha 1,5, seções numeradas por
-NBR 6024, tabelas IBGE e quadros com moldura. Regere depois de mexer no HTML:
+O `.docx` correspondente (`docs/relatorio.docx`) sai em A4 com margens
+3/2/2/3 cm, Times 12, entrelinha 1,5, seções numeradas por NBR 6024, sumário
+com campo TOC nativo do Word (atualize com F9 ao abrir), tabelas IBGE e
+quadros com moldura. Regere depois de mexer no HTML:
 
 ```sh
-make docs        # regenera os dois .docx a partir dos .html
+make docs        # regenera o .docx a partir do .html
 ```
 
 A folha de rosto dos dois documentos tem lacunas `[preencher]` para autor e

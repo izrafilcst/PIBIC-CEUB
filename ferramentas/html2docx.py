@@ -438,6 +438,38 @@ class Conversor:
         if fnt is not None:
             self.fonte_figura(fnt)
 
+    # ---- sumario (campo TOC nativo do Word) ----
+
+    def sumario_campo(self):
+        par = self.doc.add_paragraph()
+        pf = par.paragraph_format
+        pf.line_spacing = 1.0
+        pf.space_after = Pt(6)
+
+        def fld_char(tipo):
+            r = par.add_run()
+            fonte(r, SERIF, 12)
+            el = OxmlElement("w:fldChar")
+            el.set(qn("w:fldCharType"), tipo)
+            r._r.append(el)
+
+        fld_char("begin")
+        r_instr = par.add_run()
+        fonte(r_instr, SERIF, 12)
+        instr = OxmlElement("w:instrText")
+        instr.set(qn("xml:space"), "preserve")
+        instr.text = ' TOC \\o "1-3" \\h \\z \\u '
+        r_instr._r.append(instr)
+        fld_char("separate")
+        r_aviso = par.add_run(
+            "Sumário gerado automaticamente — no Word ou LibreOffice, clique "
+            "com o botão direito sobre esta área e escolha “Atualizar "
+            "campo” (ou selecione tudo e pressione F9) para preencher "
+            "os títulos e números de página.")
+        r_aviso.italic = True
+        fonte(r_aviso, SERIF, 11)
+        fld_char("end")
+
     # ---- capa ----
 
     def rosto(self, no):
@@ -478,6 +510,8 @@ class Conversor:
             t = f.tag
             if t == "div" and f.tem("rosto"):
                 self.rosto(f)
+            elif t == "div" and f.tem("sumario-campo"):
+                self.sumario_campo()
             elif t == "div" and f.tem("referencias"):
                 for p in f.filhos:
                     if isinstance(p, No) and p.tag == "p":
@@ -531,6 +565,13 @@ def converter(entrada, saida):
         rpr.append(rfonts)
     for a in ("w:ascii", "w:hAnsi", "w:cs", "w:eastAsia"):
         rfonts.set(qn(a), SERIF)
+
+    # Faz o Word recalcular o campo TOC (sumario) ao abrir o arquivo, sem
+    # exigir F9 manual.
+    settings_el = doc.settings.element
+    update_fields = OxmlElement("w:updateFields")
+    update_fields.set(qn("w:val"), "true")
+    settings_el.append(update_fields)
 
     base = os.path.dirname(os.path.abspath(saida))
     prefixo = os.path.splitext(os.path.basename(saida))[0]

@@ -66,10 +66,10 @@ teste-rf:
 test: build/testes
 	@./build/testes
 
-# Gera os .docx de entrega a partir dos .html, que são a fonte de verdade.
+# Gera o .docx de entrega a partir do .html, que é a fonte de verdade.
 # Os SVGs são rasterizados em 300 dpi; "Times New Roman" cai em Liberation
 # Serif via fontconfig, que é metricamente compatível.
-docs: docs/hardware.docx docs/software.docx
+docs: docs/relatorio.docx
 
 docs/%.docx: docs/%.html ferramentas/html2docx.py
 	@python3 -c "import docx, cairosvg" 2>/dev/null || { \
