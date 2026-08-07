@@ -209,7 +209,7 @@
 
   <div class="legend">
     <span><span class="swatch" style="background:var(--accent-in)"></span>entrada digital (botão)</span>
-    <span><span class="swatch" style="background:var(--accent-out)"></span>saída digital (LED)</span>
+    <span><span class="swatch" style="background:var(--accent-out)"></span>saída digital (base do TIP122)</span>
     <span><span class="swatch dash"></span>interno ao chip (não montar)</span>
     <span><span class="swatch" style="background:var(--accent-gnd)"></span>GND</span>
     <span><span class="swatch" style="background:var(--accent-pwr)"></span>alimentação</span>
@@ -316,78 +316,90 @@
     <div class="panel">
       <h2>Receptor <span class="tag">ESP32-C3</span></h2>
       <p class="desc">
-        2 LEDs independentes, cada um com resistor limitador em série para o
-        GND. O pino fornece a corrente diretamente.
+        2 modos independentes do brinquedo, cada um chaveado por um TIP122 em
+        lado baixo. O pino não alimenta a carga: só injeta corrente de base.
       </p>
-      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg"
-           role="img" aria-label="Esquemático do receptor: LEDs em GPIO6 e GPIO7 com resistores de 330 ohms para o GND">
+      <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"
+           role="img" aria-label="Esquemático do receptor: dois TIP122 em chave de lado baixo, com resistores de base de 330 ohms em GPIO6 e GPIO7, alimentando os dois modos do brinquedo">
 
-        <rect x="150" y="30" width="100" height="225" rx="6" class="board-body"/>
-        <text x="200" y="175" text-anchor="middle" class="board-label"
-              transform="rotate(-90 200 175)">ESP32-C3</text>
+        <rect x="150" y="60" width="100" height="280" rx="6" class="board-body"/>
+        <text x="200" y="200" text-anchor="middle" class="board-label"
+              transform="rotate(-90 200 200)">ESP32-C3</text>
 
         <!-- pinos -->
         <circle cx="150" cy="95" r="3" fill="var(--accent-out)"/>
-        <text x="143" y="99" text-anchor="end" class="pin-label">GPIO6</text>
-        <circle cx="150" cy="140" r="3" fill="var(--accent-out)"/>
-        <text x="143" y="144" text-anchor="end" class="pin-label">GPIO7</text>
-        <circle cx="150" cy="215" r="3" fill="var(--accent-gnd)"/>
-        <text x="143" y="219" text-anchor="end" class="pin-label">GND</text>
+        <text x="158" y="99" text-anchor="start" class="pin-label">GPIO6</text>
+        <circle cx="150" cy="280" r="3" fill="var(--accent-out)"/>
+        <text x="158" y="284" text-anchor="start" class="pin-label">GPIO7</text>
+        <circle cx="150" cy="320" r="3" fill="var(--accent-gnd)"/>
+        <text x="158" y="324" text-anchor="start" class="pin-label">GND</text>
 
-        <!-- ramo LED0 -->
-        <line x1="150" y1="95" x2="55" y2="95" stroke="var(--accent-out)" stroke-width="2"/>
-        <line x1="55" y1="95" x2="55" y2="150" stroke="var(--accent-out)" stroke-width="2"/>
-        <polygon points="47,150 63,150 55,166" fill="none" stroke="var(--accent-out)" stroke-width="1.8"/>
-        <line x1="47" y1="166" x2="63" y2="166" stroke="var(--accent-out)" stroke-width="1.8"/>
-        <line x1="64" y1="146" x2="74" y2="136" stroke="var(--accent-out)" stroke-width="1.2"/>
-        <line x1="70" y1="152" x2="80" y2="142" stroke="var(--accent-out)" stroke-width="1.2"/>
-        <line x1="55" y1="166" x2="55" y2="182" stroke="var(--accent-out)" stroke-width="2"/>
-        <rect x="49" y="182" width="12" height="22" fill="none" stroke="var(--accent-out)" stroke-width="1.8"/>
-        <text x="70" y="197" class="pin-sub">330 Ω</text>
-        <line x1="55" y1="204" x2="55" y2="240" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <text x="55" y="272" class="comp-label">LED0</text>
+        <!-- ================= RAMO 1: GPIO6 -> Rb1 -> Q1 -> M1 ================= -->
+        <line x1="150" y1="95" x2="128" y2="95" stroke="var(--accent-out)" stroke-width="2"/>
+        <rect x="100" y="87" width="28" height="16" fill="none" stroke="var(--accent-out)" stroke-width="1.8"/>
+        <text x="114" y="80" text-anchor="middle" class="pin-sub">330 Ω</text>
+        <line x1="100" y1="95" x2="76" y2="95" stroke="var(--accent-out)" stroke-width="2"/>
+        <!-- base, coletor, emissor -->
+        <line x1="76" y1="78" x2="76" y2="112" stroke="var(--accent-out)" stroke-width="2.4"/>
+        <line x1="76" y1="86" x2="56" y2="70" stroke="var(--accent-out)" stroke-width="2"/>
+        <line x1="56" y1="70" x2="56" y2="58" stroke="var(--accent-out)" stroke-width="2"/>
+        <line x1="76" y1="104" x2="56" y2="120" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <polygon points="61,116 66.3,106.7 71.3,112.9" fill="var(--accent-gnd)"/>
+        <line x1="56" y1="120" x2="56" y2="140" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <line x1="44" y1="140" x2="68" y2="140" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <line x1="48" y1="146" x2="64" y2="146" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <line x1="52" y1="152" x2="60" y2="152" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <text x="88" y="126" class="comp-label">Q1</text>
+        <!-- carga e alimentacao -->
+        <rect x="44" y="26" width="24" height="32" fill="none" stroke="var(--accent-pwr)" stroke-width="1.8"/>
+        <line x1="56" y1="26" x2="56" y2="14" stroke="var(--accent-pwr)" stroke-width="2"/>
+        <text x="80" y="38" class="pin-sub">M1</text>
+        <text x="56" y="9" text-anchor="middle" class="pin-sub">+V</text>
 
-        <!-- ramo LED1 -->
-        <line x1="150" y1="140" x2="105" y2="140" stroke="var(--accent-out)" stroke-width="2"/>
-        <line x1="105" y1="140" x2="105" y2="150" stroke="var(--accent-out)" stroke-width="2"/>
-        <polygon points="97,150 113,150 105,166" fill="none" stroke="var(--accent-out)" stroke-width="1.8"/>
-        <line x1="97" y1="166" x2="113" y2="166" stroke="var(--accent-out)" stroke-width="1.8"/>
-        <line x1="114" y1="146" x2="124" y2="136" stroke="var(--accent-out)" stroke-width="1.2"/>
-        <line x1="120" y1="152" x2="130" y2="142" stroke="var(--accent-out)" stroke-width="1.2"/>
-        <line x1="105" y1="166" x2="105" y2="182" stroke="var(--accent-out)" stroke-width="2"/>
-        <rect x="99" y="182" width="12" height="22" fill="none" stroke="var(--accent-out)" stroke-width="1.8"/>
-        <text x="120" y="197" class="pin-sub">330 Ω</text>
-        <line x1="105" y1="204" x2="105" y2="240" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <text x="105" y="272" class="comp-label">LED1</text>
+        <!-- ================= RAMO 2: GPIO7 -> Rb2 -> Q2 -> M2 ================= -->
+        <line x1="150" y1="280" x2="128" y2="280" stroke="var(--accent-out)" stroke-width="2"/>
+        <rect x="100" y="272" width="28" height="16" fill="none" stroke="var(--accent-out)" stroke-width="1.8"/>
+        <text x="114" y="265" text-anchor="middle" class="pin-sub">330 Ω</text>
+        <line x1="100" y1="280" x2="76" y2="280" stroke="var(--accent-out)" stroke-width="2"/>
+        <line x1="76" y1="263" x2="76" y2="297" stroke="var(--accent-out)" stroke-width="2.4"/>
+        <line x1="76" y1="271" x2="56" y2="255" stroke="var(--accent-out)" stroke-width="2"/>
+        <line x1="56" y1="255" x2="56" y2="243" stroke="var(--accent-out)" stroke-width="2"/>
+        <line x1="76" y1="289" x2="56" y2="305" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <polygon points="61,301 66.3,291.7 71.3,297.9" fill="var(--accent-gnd)"/>
+        <line x1="56" y1="305" x2="56" y2="325" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <line x1="44" y1="325" x2="68" y2="325" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <line x1="48" y1="331" x2="64" y2="331" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <line x1="52" y1="337" x2="60" y2="337" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <text x="88" y="311" class="comp-label">Q2</text>
+        <rect x="44" y="211" width="24" height="32" fill="none" stroke="var(--accent-pwr)" stroke-width="1.8"/>
+        <line x1="56" y1="211" x2="56" y2="199" stroke="var(--accent-pwr)" stroke-width="2"/>
+        <text x="80" y="223" class="pin-sub">M2</text>
+        <text x="56" y="194" text-anchor="middle" class="pin-sub">+V</text>
 
-        <!-- barramento de GND -->
-        <line x1="150" y1="215" x2="128" y2="215" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <line x1="128" y1="215" x2="128" y2="240" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <line x1="128" y1="240" x2="55" y2="240" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <circle cx="105" cy="240" r="3" fill="var(--accent-gnd)"/>
+        <!-- GND da placa -->
+        <line x1="150" y1="320" x2="120" y2="320" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <line x1="120" y1="320" x2="120" y2="340" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <line x1="108" y1="340" x2="132" y2="340" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <line x1="112" y1="346" x2="128" y2="346" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <line x1="116" y1="352" x2="124" y2="352" stroke="var(--accent-gnd)" stroke-width="2"/>
 
-        <!-- alimentação -->
-        <line x1="250" y1="70" x2="272" y2="70" stroke="var(--accent-pwr)" stroke-width="2"/>
-        <circle cx="250" cy="70" r="3" fill="var(--accent-pwr)"/>
-        <text x="278" y="74" class="pin-label">5V</text>
-
-        <line x1="250" y1="225" x2="272" y2="225" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <circle cx="250" cy="225" r="3" fill="var(--accent-gnd)"/>
-        <text x="278" y="229" class="pin-label">GND comum</text>
+        <text x="200" y="380" text-anchor="middle" class="pin-sub">terra comum obrigatório com a fonte do brinquedo</text>
       </svg>
 
       <div class="tabela-wrap">
       <table>
-        <tr><th>LED</th><th>GPIO</th><th>Ligação</th></tr>
-        <tr><td>LED0</td><td class="gpio out">GPIO6</td><td>Pino → anodo, catodo → 330 Ω → GND</td></tr>
-        <tr><td>LED1</td><td class="gpio out">GPIO7</td><td>Pino → anodo, catodo → 330 Ω → GND</td></tr>
+        <tr><th>Modo</th><th>GPIO</th><th>Ligação</th></tr>
+        <tr><td>Modo 1 (Q1)</td><td class="gpio out">GPIO6</td><td>Pino → 330 Ω → base; coletor → carga → +V; emissor → GND</td></tr>
+        <tr><td>Modo 2 (Q2)</td><td class="gpio out">GPIO7</td><td>Pino → 330 Ω → base; coletor → carga → +V; emissor → GND</td></tr>
       </table>
       </div>
       <p class="footnote">
-        Com 330 Ω e LED vermelho (queda ≈2,0 V), a corrente fica em
-        (3,3 − 2,0) / 330 ≈ 3,9 mA — bem abaixo dos 40 mA por pino. LEDs azuis
-        ou brancos têm queda ≈3,0 V e ficariam apagados demais; para esses,
-        use ≈100 Ω.
+        Com 330 Ω e V<sub>BE</sub> ≈ 2,0 V (duas junções do Darlington), a
+        corrente de base fica em (3,3 − 2,0) / 330 ≈ 3,9 mA — bem abaixo dos
+        40 mA por pino. Com h<sub>FE</sub> ≥ 1000, isso sustenta ≈3,9 A de
+        coletor, muito além de qualquer carga plausível, então o TIP122 opera
+        em saturação profunda. O emissor <strong>precisa</strong> compartilhar
+        o terra com a fonte do brinquedo, senão não há caminho de retorno.
       </p>
     </div>
 

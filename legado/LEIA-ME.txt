@@ -1,3 +1,12 @@
 Versão original dos sketches, antes da reestruturação com TDD + FreeRTOS.
-Mantida só como referência histórica (o repositório não tem git).
-O debounce daqui NÃO funciona: ver test/test_debounce.cpp.
+Mantida só como referência histórica: NÃO é compilada nem testada, e não
+acompanha as mudanças feitas em lib/.
+
+Duas coisas para não tropeçar ao ler:
+
+- O debounce daqui NÃO funciona. Ver test/test_debounce.cpp, que documenta
+  o defeito com os casos que a versão nova passa e esta reprova.
+- A carga do receptor aqui são dois LEDs. O projeto passou depois a acionar
+  dois modos de um brinquedo por transistores TIP122, e o vocabulário do
+  firmware atual acompanha isso (MODO0_PIN, nivelModo, "modo0 -> ligado").
+  Ver docs/hardware.html para o estágio de potência.

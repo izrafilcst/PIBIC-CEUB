@@ -4,6 +4,14 @@
 **Data dos ensaios:** 4 de agosto de 2026
 **Bancada:** Linux 7.0.0-28-generic, arduino-cli 1.5.1, core `esp32:esp32` 3.0.7
 
+> **Nota de leitura.** Este é um registro de ensaio datado, preservado como foi
+> escrito: as saídas de console são transcrições literais do que as placas
+> imprimiram em 4 de agosto de 2026. Na época, a carga do receptor eram dois
+> LEDs, e o firmware imprimia `led0 -> aceso`. O projeto passou depois a acionar
+> dois modos de um brinquedo por transistores TIP122, e o firmware hoje imprime
+> `modo0 -> ligado`. O vocabulário mudou; as medições e as conclusões, não. Para
+> o estado atual do hardware, ver [`hardware.html`](hardware.html).
+
 ---
 
 ## Resumo

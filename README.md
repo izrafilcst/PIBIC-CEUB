@@ -1,11 +1,13 @@
 # PIBIC-CEUB: Emissor / Receptor via ESP-NOW
 
-Dois botões controlam dois LEDs em outra placa, por ESP-NOW.
+Dois botões acionam, à distância, dois modos independentes de um brinquedo, por
+ESP-NOW. Cada modo é alimentado por um TIP122 em chave de lado baixo, comandado
+por um pino da placa receptora.
 
 | Papel | Placa | Serial | Pinos |
 |---|---|---|---|
 | Emissor | ESP32 DevKit clássico | `/dev/ttyUSB*` | botões em GPIO4/5 |
-| Receptor | ESP32-C3 | `/dev/ttyACM*` | LEDs em GPIO6/7 |
+| Receptor | ESP32-C3 | `/dev/ttyACM*` | bases dos TIP122 em GPIO6/7 |
 
 As duas pontas são chips diferentes de propósito: o par de C3 original não
 conseguia se comunicar (ver *Histórico* no fim). Os sketches escolhem os pinos
@@ -21,7 +23,7 @@ receptor/     sketch do receptor (FreeRTOS) + links para lib/
 ferramentas/  scripts de bancada (macs, chaves, smoke, teste de RF)
 docs/         documentação do PIBIC e registros de ensaio
 legado/       versão original dos sketches, antes da reestruturação
-esquematico.html  diagrama de ligação (desatualizado: ver pendências)
+esquematico.html  diagrama de ligação para bancada (tema escuro, pinos a evitar)
 ```
 
 `lib/` é a única fonte da verdade. As pastas de sketch contêm symlinks porque a
@@ -29,15 +31,22 @@ IDE do Arduino só compila arquivos que estejam dentro da pasta do sketch.
 
 ## Documentação
 
-Documentos em padrão ABNT, um por camada. São HTML autocontidos com CSS de
-impressão (margens 3/2/3/2 cm, Times 12, entrelinha 1,5): abra no navegador e
-use *Imprimir → Salvar como PDF* para gerar a versão de entrega.
+Documentos em padrão ABNT, um por camada. O HTML é a **fonte de verdade**; o
+`.docx` é gerado a partir dele para entrega no PIBIC.
 
 | Documento | Conteúdo |
 |---|---|
-| [`docs/hardware.html`](docs/hardware.html) | Esquemáticos em SVG vetorial (simbologia IEC), dimensionamento de `pull-up` e limitador, escolha de pinos, ensaios de RF e funcional |
-| [`docs/software.html`](docs/software.html) | Arquitetura FreeRTOS, protocolo, criptografia, trechos comentados do código, verificação |
+| [`docs/hardware.html`](docs/hardware.html) | Esquemáticos em SVG vetorial (simbologia IEC), dimensionamento do `pull-up` interno e do resistor de base, estágio TIP122, protocolo ESP-NOW e criptografia, ensaios de RF e funcional |
+| [`docs/software.html`](docs/software.html) | Arquitetura FreeRTOS, protocolo de aplicação, segurança em software, trechos comentados do código, verificação |
 | [`docs/diagnostico-rf-esp32c3.md`](docs/diagnostico-rf-esp32c3.md) | Registro bruto da depuração do par de C3 |
+
+Os `.docx` correspondentes (`docs/hardware.docx`, `docs/software.docx`) saem em
+A4 com margens 3/2/2/3 cm, Times 12, entrelinha 1,5, seções numeradas por
+NBR 6024, tabelas IBGE e quadros com moldura. Regere depois de mexer no HTML:
+
+```sh
+make docs        # regenera os dois .docx a partir dos .html
+```
 
 A folha de rosto dos dois documentos tem lacunas `[preencher]` para autor e
 orientador(a).
@@ -45,13 +54,14 @@ orientador(a).
 ## Comandos
 
 ```sh
-make test        # 42 testes de host, sem precisar de placa
+make test        # 48 testes de host, sem precisar de placa
 make chaves      # gera lib/chaves.h (PMK/LMK aleatórias, não versionado)
 make macs        # lê o MAC das duas placas via esptool -> lib/config_rede.h
 make gravar      # compila e grava as duas
 make smoke       # grava, reinicia e verifica a comunicação ponta a ponta
 make teste-rf    # diagnóstico de RF puro (AP + scanner), sem ESP-NOW
 make sketches    # recria os symlinks de lib/ em emissor/ e receptor/
+make docs        # regera os .docx de entrega a partir dos .html
 make limpar
 ```
 
@@ -104,7 +114,7 @@ o código anterior tinha `encrypt = false` e trafegava em claro.
   desconhecido **ainda chega ao callback, em claro**. Por isso há um filtro de
   remetente por MAC, em tempo constante, antes de qualquer processamento.
 
-Isso protege contra bisbilhotar e contra um vizinho acender seus LEDs. **Não**
+Isso protege contra bisbilhotar e contra um vizinho acionar seu brinquedo. **Não**
 protege contra alguém com acesso físico à placa: as chaves estão na flash sem
 Flash Encryption. Fechar isso exigiria migrar o build para ESP-IDF.
 
@@ -118,8 +128,8 @@ rodando durante a rajada. `tarefaDiagnostico` (prio 1) consome o status dos
 callbacks e relata a cada 10 s.
 
 **Receptor.** O callback do ESP-NOW roda no contexto da task de WiFi e apenas
-copia o quadro para `filaQuadros`. `tarefaLeds` (prio 3) consome a fila, decide
-e aciona os LEDs fora do caminho crítico do rádio.
+copia o quadro para `filaQuadros`. `tarefaModos` (prio 3) consome a fila, decide
+e aciona as bases dos TIP122 fora do caminho crítico do rádio.
 
 ## Protocolo
 
@@ -133,7 +143,7 @@ typedef struct __attribute__((packed)) {
 ```
 
 O emissor manda o **estado absoluto**, não um "toggle", de modo que perder um
-pacote não dessincroniza os LEDs. A rajada de 3 cobre perda; o receptor
+pacote não dessincroniza os modos. A rajada de 3 cobre perda; o receptor
 deduplica por `seq`. O `bootId` existe porque, sem ele, um reboot do emissor
 faz a sequência voltar ao começo e o receptor descartaria os N cliques
 seguintes.
@@ -143,7 +153,7 @@ seguintes.
 - **O TX do ESP32-C3 receptor está inoperante.** Confirmado por teste de RF
   invertido: o AP subido pelo C3 fica invisível ao clássico a centímetros de
   distância, enquanto este lista 11 redes, uma delas a `-94 dBm`. Os quadros
-  chegam e acendem os LEDs, mas o ACK nunca volta, então `make smoke` só passa
+  chegam e acionam os modos, mas o ACK nunca volta, então `make smoke` só passa
   limpo com `FLAGS_SMOKE=--receptor-sem-tx`. Sem correção em software: exige
   trocar a placa.
 - A justificativa de usar o L7805CV em vez de deep sleep não está documentada
@@ -164,10 +174,10 @@ depuração eliminou, com evidência, todas as causas de software:
 
 O que fechou a questão foi um teste de RF puro, sem ESP-NOW (`make teste-rf`):
 uma placa subiu um AP e a outra escaneou. O AP a centímetros de distância ficou
-**invisível**, enquanto o roteador de um vizinho aparecia a `-34 dBm` e uma rede
-distante a `-87 dBm`. RX excelente nas duas, TX que não sai em nenhuma. Com o
-histórico de problemas conhecidos daquele par, o emissor foi trocado por um
-DevKit clássico.
+**invisível** em três varreduras seguidas, enquanto o scanner listava 10 a 11
+redes do ambiente, entre `-36` e `-89 dBm`, e um celular a `-37 dBm`. RX
+excelente nas duas, TX que não sai em nenhuma. Com o histórico de problemas
+conhecidos daquele par, o emissor foi trocado por um DevKit clássico.
 
 `make teste-rf` continua no repositório: é o primeiro comando a rodar se a
 comunicação parar, porque separa problema de rádio de problema de software em
