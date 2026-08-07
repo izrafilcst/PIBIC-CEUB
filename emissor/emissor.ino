@@ -37,11 +37,15 @@
 // GPIO4/5 nos dois alvos: é como a bancada está montada, verificado com uma
 // varredura de nível pino a pino.
 //
+// Os botões usam só o pull-up interno (INPUT_PULLUP, ~45k): a montagem não
+// tem resistor externo, o botão apenas fecha o pino contra o GND.
+//
 // No ESP32 clássico o GPIO4 é um GPIO comum, sem função especial. O GPIO5 é
 // strapping — amostrado no reset para escolher o timing de SDIO slave — mas
-// esse strap não interfere no boot a partir da flash, e o pull-up (interno
-// mais o externo de 10k da bancada) o mantém alto justamente no instante em
-// que ele é lido. Segurar o botão durante o reset é inofensivo aqui.
+// esse strap não interfere no boot a partir da flash. Vale notar que o
+// INPUT_PULLUP só passa a valer no pinMode, bem depois do reset; o que segura
+// o GPIO5 alto no instante da amostragem é o pull-up que o chip já habilita
+// por padrão nesse pino. Segurar o botão durante o reset é inofensivo aqui.
 //
 // O JTAG do clássico fica em GPIO12..15, não em GPIO4: uma versão anterior
 // deste comentário dizia o contrário e motivou a escolha de GPIO32/33.

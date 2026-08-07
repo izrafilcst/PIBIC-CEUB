@@ -2,7 +2,8 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Esquemático — Emissor / Receptor ESP32-C3</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Esquemático — Emissor (ESP32 DevKit) / Receptor (ESP32-C3)</title>
 <style>
   :root {
     --bg: #14181c;
@@ -40,6 +41,7 @@
     color: var(--muted);
     font-size: 14px;
     margin: 0 0 28px;
+    line-height: 1.6;
   }
 
   .warning {
@@ -71,6 +73,7 @@
     border: 1px solid var(--line);
     border-radius: 10px;
     padding: 18px 18px 22px;
+    min-width: 0;
   }
 
   .panel h2 {
@@ -80,6 +83,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
   }
 
   .panel h2 .tag {
@@ -96,31 +100,30 @@
     color: var(--muted);
     font-size: 12.5px;
     margin: 0 0 14px;
+    line-height: 1.5;
   }
 
   svg { width: 100%; height: auto; display: block; }
 
-  .pin-label {
-    font-family: var(--mono);
-    font-size: 11px;
-    fill: var(--text);
-  }
-
-  .pin-sub {
-    font-family: var(--mono);
-    font-size: 9px;
-    fill: var(--muted);
-  }
-
+  .pin-label { font-family: var(--mono); font-size: 11px; fill: var(--text); }
+  .pin-sub   { font-family: var(--mono); font-size: 9.5px; fill: var(--muted); }
   .comp-label {
-    font-family: var(--mono);
-    font-size: 11px;
-    fill: var(--text);
-    text-anchor: middle;
+    font-family: var(--mono); font-size: 11px;
+    fill: var(--text); text-anchor: middle;
+  }
+  .int-label {
+    font-family: var(--mono); font-size: 9px;
+    fill: var(--muted); text-anchor: middle;
   }
 
   .board-body { fill: #232a31; stroke: #3a434c; stroke-width: 1; }
   .board-label { font-family: var(--mono); font-size: 10px; fill: var(--muted); }
+
+  /* Elementos internos ao SoC: tracejados, para não se confundirem com
+     fiação que você precisa montar. */
+  .interno { stroke: var(--accent-in); stroke-width: 1.2; stroke-dasharray: 3 2.5; fill: none; }
+
+  .tabela-wrap { overflow-x: auto; }
 
   table {
     width: 100%;
@@ -133,6 +136,7 @@
     text-align: left;
     padding: 8px 10px;
     border-bottom: 1px solid var(--line);
+    vertical-align: top;
   }
 
   th {
@@ -143,8 +147,9 @@
     letter-spacing: 0.03em;
   }
 
-  td.gpio { font-family: var(--mono); color: var(--accent-in); }
+  td.gpio { font-family: var(--mono); color: var(--accent-in); white-space: nowrap; }
   td.gpio.out { color: var(--accent-out); }
+  td.gpio.warn { color: var(--accent-pwr); }
 
   .legend {
     display: flex;
@@ -157,6 +162,9 @@
 
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
   .swatch { width: 14px; height: 3px; display: inline-block; border-radius: 2px; }
+  .swatch.dash {
+    height: 0; border-top: 2px dashed var(--accent-in); border-radius: 0;
+  }
 
   .section-title {
     font-size: 14px;
@@ -171,172 +179,261 @@
     margin-top: 10px;
     line-height: 1.6;
   }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.92em;
+    background: #232a31;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <h1>Emissor / Receptor — ESP32-C3, Arduino</h1>
-  <p class="subtitle">Diagrama funcional por número de GPIO. Confira o rótulo impresso na sua placa (ex. "IO4") em vez da posição física neste desenho — o layout físico varia entre clones da DevKitM-1.</p>
+  <h1>Emissor (ESP32 DevKit) / Receptor (ESP32-C3)</h1>
+  <p class="subtitle">
+    Diagrama funcional por número de GPIO. Confira o rótulo impresso na sua
+    placa em vez da posição física neste desenho — o layout dos pinos varia
+    entre clones. As duas pontas são chips de famílias diferentes: a numeração
+    <strong>não</strong> é intercambiável entre elas.
+  </p>
 
   <div class="warning">
-    <strong>Antes de ligar o L7805CV:</strong> confirme com multímetro qual pino da sua placa é 5V/VIN antes de conectar a saída do regulador. Algumas placas ESP32-C3 não têm pino 5V exposto, só 3V3 — ligar 5V nesse pino queima a placa. Evite também GPIO2, GPIO8 e GPIO9 (strapping, usados no boot) e GPIO12–19 (flash interno e USB-JTAG).
+    <strong>Antes de ligar o L7805CV:</strong> confirme com multímetro qual pino
+    da sua placa é 5V/VIN antes de conectar a saída do regulador. A DevKit V1
+    clássica traz um pino <code>VIN</code>; já algumas placas ESP32-C3 não
+    expõem 5V, só 3V3 — ligar 5V no pino 3V3 queima a placa.
   </div>
 
   <div class="legend">
     <span><span class="swatch" style="background:var(--accent-in)"></span>entrada digital (botão)</span>
     <span><span class="swatch" style="background:var(--accent-out)"></span>saída digital (LED)</span>
+    <span><span class="swatch dash"></span>interno ao chip (não montar)</span>
     <span><span class="swatch" style="background:var(--accent-gnd)"></span>GND</span>
     <span><span class="swatch" style="background:var(--accent-pwr)"></span>alimentação</span>
   </div>
 
   <div class="boards">
 
-    <!-- EMISSOR -->
+    <!-- ================= EMISSOR ================= -->
     <div class="panel">
-      <h2>Emissor <span class="tag">ESP32-C3</span></h2>
-      <p class="desc">2 botões, cada um para GND, usando pull-up interno (INPUT_PULLUP)</p>
-      <svg viewBox="0 0 360 280" xmlns="http://www.w3.org/2000/svg">
-        <!-- board -->
-        <rect x="130" y="30" width="100" height="220" rx="6" class="board-body"/>
-        <text x="180" y="145" text-anchor="middle" class="board-label" transform="rotate(-90 180 145)">ESP32-C3-DevKitM-1</text>
+      <h2>Emissor <span class="tag">ESP32 DevKit V1</span></h2>
+      <p class="desc">
+        2 botões, cada um ligando o pino diretamente ao GND. Sem resistor
+        externo: o pull-up interno é habilitado por
+        <code>pinMode(pino, INPUT_PULLUP)</code>.
+      </p>
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg"
+           role="img" aria-label="Esquemático do emissor: botões em GPIO4 e GPIO5 ligados ao GND, com pull-up interno">
 
-        <!-- left pins: GPIO4, GPIO5 -->
-        <line x1="130" y1="90"  x2="115" y2="90"  stroke="var(--accent-in)" stroke-width="2"/>
-        <circle cx="130" cy="90" r="3" fill="var(--accent-in)"/>
-        <text x="105" y="94" text-anchor="end" class="pin-label">IO4</text>
+        <!-- placa -->
+        <rect x="150" y="30" width="100" height="225" rx="6" class="board-body"/>
+        <text x="200" y="175" text-anchor="middle" class="board-label"
+              transform="rotate(-90 200 175)">ESP32 DevKit V1</text>
 
-        <line x1="130" y1="140" x2="115" y2="140" stroke="var(--accent-in)" stroke-width="2"/>
-        <circle cx="130" cy="140" r="3" fill="var(--accent-in)"/>
-        <text x="105" y="144" text-anchor="end" class="pin-label">IO5</text>
+        <!-- pull-ups INTERNOS (tracejado) -->
+        <line x1="165" y1="52" x2="235" y2="52" class="interno"/>
+        <text x="200" y="45" class="int-label">3V3 interno</text>
 
-        <!-- GND pin -->
-        <line x1="130" y1="210" x2="115" y2="210" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <circle cx="130" cy="210" r="3" fill="var(--accent-gnd)"/>
-        <text x="105" y="214" text-anchor="end" class="pin-label">GND</text>
+        <line x1="180" y1="52" x2="180" y2="62" class="interno"/>
+        <rect x="174" y="62" width="12" height="22" class="interno"/>
+        <line x1="180" y1="84" x2="180" y2="95" class="interno"/>
+        <line x1="180" y1="95" x2="150" y2="95" class="interno"/>
 
-        <!-- wires down to buttons -->
-        <line x1="115" y1="90"  x2="60" y2="90"  stroke="var(--accent-in)" stroke-width="2"/>
-        <line x1="60" y1="90" x2="60" y2="200" stroke="var(--accent-in)" stroke-width="2"/>
+        <line x1="214" y1="52" x2="214" y2="62" class="interno"/>
+        <rect x="208" y="62" width="12" height="22" class="interno"/>
+        <line x1="214" y1="84" x2="214" y2="140" class="interno"/>
+        <line x1="214" y1="140" x2="150" y2="140" class="interno"/>
 
-        <line x1="115" y1="140" x2="40" y2="140" stroke="var(--accent-in)" stroke-width="2"/>
-        <line x1="40" y1="140" x2="40" y2="215" stroke="var(--accent-in)" stroke-width="2"/>
+        <text x="200" y="112" class="int-label">≈45 kΩ</text>
 
-        <line x1="115" y1="210" x2="80" y2="210" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <line x1="80" y1="210" x2="80" y2="230" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <line x1="80" y1="230" x2="40" y2="230" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <line x1="40" y1="230" x2="40" y2="215" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <line x1="80" y1="230" x2="60" y2="230" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <line x1="60" y1="230" x2="60" y2="200" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <!-- pinos -->
+        <circle cx="150" cy="95" r="3" fill="var(--accent-in)"/>
+        <text x="143" y="99" text-anchor="end" class="pin-label">GPIO4</text>
+        <circle cx="150" cy="140" r="3" fill="var(--accent-in)"/>
+        <text x="143" y="144" text-anchor="end" class="pin-label">GPIO5</text>
+        <circle cx="150" cy="215" r="3" fill="var(--accent-gnd)"/>
+        <text x="143" y="219" text-anchor="end" class="pin-label">GND</text>
 
-        <!-- button symbols -->
-        <rect x="48" y="195" width="24" height="10" rx="2" fill="none" stroke="var(--accent-in)" stroke-width="1.5"/>
-        <text x="60" y="188" class="comp-label">SW0</text>
+        <!-- fiação externa: SW0 em GPIO4 -->
+        <line x1="150" y1="95" x2="55" y2="95" stroke="var(--accent-in)" stroke-width="2"/>
+        <line x1="55" y1="95" x2="55" y2="160" stroke="var(--accent-in)" stroke-width="2"/>
+        <!-- chave NA: os dois terminais NÃO se tocam -->
+        <circle cx="55" cy="160" r="2.5" fill="var(--accent-in)"/>
+        <circle cx="55" cy="188" r="2.5" fill="var(--accent-in)"/>
+        <line x1="41" y1="156" x2="41" y2="192" stroke="var(--accent-in)" stroke-width="1.8"/>
+        <line x1="41" y1="174" x2="27" y2="174" stroke="var(--accent-in)" stroke-width="1.8"/>
+        <line x1="27" y1="166" x2="27" y2="182" stroke="var(--accent-in)" stroke-width="1.8"/>
+        <line x1="55" y1="188" x2="55" y2="240" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <text x="55" y="272" class="comp-label">SW0</text>
 
-        <rect x="28" y="210" width="24" height="10" rx="2" fill="none" stroke="var(--accent-in)" stroke-width="1.5"/>
-        <text x="40" y="203" class="comp-label" transform="translate(0,-8)">SW1</text>
+        <!-- fiação externa: SW1 em GPIO5 -->
+        <line x1="150" y1="140" x2="105" y2="140" stroke="var(--accent-in)" stroke-width="2"/>
+        <line x1="105" y1="140" x2="105" y2="160" stroke="var(--accent-in)" stroke-width="2"/>
+        <circle cx="105" cy="160" r="2.5" fill="var(--accent-in)"/>
+        <circle cx="105" cy="188" r="2.5" fill="var(--accent-in)"/>
+        <line x1="91" y1="156" x2="91" y2="192" stroke="var(--accent-in)" stroke-width="1.8"/>
+        <line x1="91" y1="174" x2="77" y2="174" stroke="var(--accent-in)" stroke-width="1.8"/>
+        <line x1="77" y1="166" x2="77" y2="182" stroke="var(--accent-in)" stroke-width="1.8"/>
+        <line x1="105" y1="188" x2="105" y2="240" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <text x="105" y="272" class="comp-label">SW1</text>
 
-        <!-- power side -->
-        <line x1="230" y1="60" x2="250" y2="60" stroke="var(--accent-pwr)" stroke-width="2"/>
-        <circle cx="230" cy="60" r="3" fill="var(--accent-pwr)"/>
-        <text x="258" y="64" class="pin-label">5V (do L7805CV)</text>
+        <!-- barramento de GND -->
+        <line x1="150" y1="215" x2="128" y2="215" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <line x1="128" y1="215" x2="128" y2="240" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <line x1="128" y1="240" x2="55" y2="240" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <circle cx="105" cy="240" r="3" fill="var(--accent-gnd)"/>
 
-        <line x1="230" y1="220" x2="250" y2="220" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <circle cx="230" cy="220" r="3" fill="var(--accent-gnd)"/>
-        <text x="258" y="224" class="pin-label">GND comum</text>
+        <!-- alimentação -->
+        <line x1="250" y1="70" x2="272" y2="70" stroke="var(--accent-pwr)" stroke-width="2"/>
+        <circle cx="250" cy="70" r="3" fill="var(--accent-pwr)"/>
+        <text x="278" y="74" class="pin-label">VIN (5V)</text>
+
+        <line x1="250" y1="225" x2="272" y2="225" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <circle cx="250" cy="225" r="3" fill="var(--accent-gnd)"/>
+        <text x="278" y="229" class="pin-label">GND comum</text>
       </svg>
 
+      <div class="tabela-wrap">
       <table>
         <tr><th>Botão</th><th>GPIO</th><th>Ligação</th></tr>
-        <tr><td>SW0</td><td class="gpio">IO4</td><td>Pino → GND. Pull-up interno via código.</td></tr>
-        <tr><td>SW1</td><td class="gpio">IO5</td><td>Pino → GND. Pull-up interno via código.</td></tr>
+        <tr><td>SW0</td><td class="gpio">GPIO4</td><td>Pino → chave → GND</td></tr>
+        <tr><td>SW1</td><td class="gpio">GPIO5</td><td>Pino → chave → GND</td></tr>
       </table>
-      <p class="footnote">Nenhum resistor externo necessário: <code>pinMode(pino, INPUT_PULLUP)</code> já cuida do pull-up.</p>
+      </div>
+      <p class="footnote">
+        Nenhum resistor externo: <code>INPUT_PULLUP</code> liga o pull-up de
+        ≈45 kΩ interno ao chip. Solto, o pino lê <code>HIGH</code>; pressionado,
+        <code>LOW</code> — e o firmware dispara na borda de descida. Se o botão
+        ficar longe da placa, o nó de alta impedância pode captar ruído; nesse
+        caso acrescente 10 kΩ externo em paralelo, que só reforça o nível alto.
+      </p>
     </div>
 
-    <!-- RECEPTOR -->
+    <!-- ================= RECEPTOR ================= -->
     <div class="panel">
       <h2>Receptor <span class="tag">ESP32-C3</span></h2>
-      <p class="desc">2 LEDs independentes, cada um com resistor limitador para GND</p>
-      <svg viewBox="0 0 360 280" xmlns="http://www.w3.org/2000/svg">
-        <rect x="130" y="30" width="100" height="220" rx="6" class="board-body"/>
-        <text x="180" y="145" text-anchor="middle" class="board-label" transform="rotate(-90 180 145)">ESP32-C3-DevKitM-1</text>
+      <p class="desc">
+        2 LEDs independentes, cada um com resistor limitador em série para o
+        GND. O pino fornece a corrente diretamente.
+      </p>
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg"
+           role="img" aria-label="Esquemático do receptor: LEDs em GPIO6 e GPIO7 com resistores de 330 ohms para o GND">
 
-        <!-- left pins: GPIO6, GPIO7 -->
-        <line x1="130" y1="90"  x2="115" y2="90"  stroke="var(--accent-out)" stroke-width="2"/>
-        <circle cx="130" cy="90" r="3" fill="var(--accent-out)"/>
-        <text x="105" y="94" text-anchor="end" class="pin-label">IO6</text>
+        <rect x="150" y="30" width="100" height="225" rx="6" class="board-body"/>
+        <text x="200" y="175" text-anchor="middle" class="board-label"
+              transform="rotate(-90 200 175)">ESP32-C3</text>
 
-        <line x1="130" y1="140" x2="115" y2="140" stroke="var(--accent-out)" stroke-width="2"/>
-        <circle cx="130" cy="140" r="3" fill="var(--accent-out)"/>
-        <text x="105" y="144" text-anchor="end" class="pin-label">IO7</text>
+        <!-- pinos -->
+        <circle cx="150" cy="95" r="3" fill="var(--accent-out)"/>
+        <text x="143" y="99" text-anchor="end" class="pin-label">GPIO6</text>
+        <circle cx="150" cy="140" r="3" fill="var(--accent-out)"/>
+        <text x="143" y="144" text-anchor="end" class="pin-label">GPIO7</text>
+        <circle cx="150" cy="215" r="3" fill="var(--accent-gnd)"/>
+        <text x="143" y="219" text-anchor="end" class="pin-label">GND</text>
 
-        <line x1="130" y1="210" x2="115" y2="210" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <circle cx="130" cy="210" r="3" fill="var(--accent-gnd)"/>
-        <text x="105" y="214" text-anchor="end" class="pin-label">GND</text>
+        <!-- ramo LED0 -->
+        <line x1="150" y1="95" x2="55" y2="95" stroke="var(--accent-out)" stroke-width="2"/>
+        <line x1="55" y1="95" x2="55" y2="150" stroke="var(--accent-out)" stroke-width="2"/>
+        <polygon points="47,150 63,150 55,166" fill="none" stroke="var(--accent-out)" stroke-width="1.8"/>
+        <line x1="47" y1="166" x2="63" y2="166" stroke="var(--accent-out)" stroke-width="1.8"/>
+        <line x1="64" y1="146" x2="74" y2="136" stroke="var(--accent-out)" stroke-width="1.2"/>
+        <line x1="70" y1="152" x2="80" y2="142" stroke="var(--accent-out)" stroke-width="1.2"/>
+        <line x1="55" y1="166" x2="55" y2="182" stroke="var(--accent-out)" stroke-width="2"/>
+        <rect x="49" y="182" width="12" height="22" fill="none" stroke="var(--accent-out)" stroke-width="1.8"/>
+        <text x="70" y="197" class="pin-sub">330 Ω</text>
+        <line x1="55" y1="204" x2="55" y2="240" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <text x="55" y="272" class="comp-label">LED0</text>
 
-        <!-- wires to LEDs -->
-        <line x1="115" y1="90" x2="60" y2="90" stroke="var(--accent-out)" stroke-width="2"/>
-        <line x1="60" y1="90" x2="60" y2="150" stroke="var(--accent-out)" stroke-width="2"/>
+        <!-- ramo LED1 -->
+        <line x1="150" y1="140" x2="105" y2="140" stroke="var(--accent-out)" stroke-width="2"/>
+        <line x1="105" y1="140" x2="105" y2="150" stroke="var(--accent-out)" stroke-width="2"/>
+        <polygon points="97,150 113,150 105,166" fill="none" stroke="var(--accent-out)" stroke-width="1.8"/>
+        <line x1="97" y1="166" x2="113" y2="166" stroke="var(--accent-out)" stroke-width="1.8"/>
+        <line x1="114" y1="146" x2="124" y2="136" stroke="var(--accent-out)" stroke-width="1.2"/>
+        <line x1="120" y1="152" x2="130" y2="142" stroke="var(--accent-out)" stroke-width="1.2"/>
+        <line x1="105" y1="166" x2="105" y2="182" stroke="var(--accent-out)" stroke-width="2"/>
+        <rect x="99" y="182" width="12" height="22" fill="none" stroke="var(--accent-out)" stroke-width="1.8"/>
+        <text x="120" y="197" class="pin-sub">330 Ω</text>
+        <line x1="105" y1="204" x2="105" y2="240" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <text x="105" y="272" class="comp-label">LED1</text>
 
-        <line x1="115" y1="140" x2="40" y2="140" stroke="var(--accent-out)" stroke-width="2"/>
-        <line x1="40" y1="140" x2="40" y2="150" stroke="var(--accent-out)" stroke-width="2"/>
+        <!-- barramento de GND -->
+        <line x1="150" y1="215" x2="128" y2="215" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <line x1="128" y1="215" x2="128" y2="240" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <line x1="128" y1="240" x2="55" y2="240" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <circle cx="105" cy="240" r="3" fill="var(--accent-gnd)"/>
 
-        <!-- LED symbols (triangle + line = diode) -->
-        <polygon points="54,150 66,150 60,162" fill="none" stroke="var(--accent-out)" stroke-width="1.5"/>
-        <line x1="54" y1="162" x2="66" y2="162" stroke="var(--accent-out)" stroke-width="1.5"/>
-        <text x="60" y="176" class="comp-label">LED0</text>
+        <!-- alimentação -->
+        <line x1="250" y1="70" x2="272" y2="70" stroke="var(--accent-pwr)" stroke-width="2"/>
+        <circle cx="250" cy="70" r="3" fill="var(--accent-pwr)"/>
+        <text x="278" y="74" class="pin-label">5V</text>
 
-        <polygon points="34,150 46,150 40,162" fill="none" stroke="var(--accent-out)" stroke-width="1.5"/>
-        <line x1="34" y1="162" x2="46" y2="162" stroke="var(--accent-out)" stroke-width="1.5"/>
-        <text x="40" y="176" class="comp-label">LED1</text>
-
-        <!-- resistors -->
-        <rect x="52" y="185" width="16" height="8" fill="none" stroke="var(--accent-out)" stroke-width="1.5"/>
-        <text x="80" y="192" class="pin-sub">220Ω</text>
-        <line x1="60" y1="162" x2="60" y2="185" stroke="var(--accent-out)" stroke-width="2"/>
-        <line x1="60" y1="193" x2="60" y2="210" stroke="var(--accent-out)" stroke-width="2"/>
-
-        <rect x="32" y="200" width="16" height="8" fill="none" stroke="var(--accent-out)" stroke-width="1.5"/>
-        <text x="6" y="207" class="pin-sub">220Ω</text>
-        <line x1="40" y1="162" x2="40" y2="200" stroke="var(--accent-out)" stroke-width="2"/>
-        <line x1="40" y1="208" x2="40" y2="225" stroke="var(--accent-out)" stroke-width="2"/>
-
-        <!-- common gnd rail -->
-        <line x1="115" y1="210" x2="90" y2="210" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <line x1="90" y1="210" x2="90" y2="225" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <line x1="90" y1="225" x2="40" y2="225" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <line x1="60" y1="210" x2="90" y2="210" stroke="var(--accent-gnd)" stroke-width="2"/>
-
-        <!-- power side -->
-        <line x1="230" y1="60" x2="250" y2="60" stroke="var(--accent-pwr)" stroke-width="2"/>
-        <circle cx="230" cy="60" r="3" fill="var(--accent-pwr)"/>
-        <text x="258" y="64" class="pin-label">5V (do L7805CV)</text>
-
-        <line x1="230" y1="220" x2="250" y2="220" stroke="var(--accent-gnd)" stroke-width="2"/>
-        <circle cx="230" cy="220" r="3" fill="var(--accent-gnd)"/>
-        <text x="258" y="224" class="pin-label">GND comum</text>
+        <line x1="250" y1="225" x2="272" y2="225" stroke="var(--accent-gnd)" stroke-width="2"/>
+        <circle cx="250" cy="225" r="3" fill="var(--accent-gnd)"/>
+        <text x="278" y="229" class="pin-label">GND comum</text>
       </svg>
 
+      <div class="tabela-wrap">
       <table>
         <tr><th>LED</th><th>GPIO</th><th>Ligação</th></tr>
-        <tr><td>LED0</td><td class="gpio out">IO6</td><td>Pino → anodo LED → catodo → resistor 220Ω → GND</td></tr>
-        <tr><td>LED1</td><td class="gpio out">IO7</td><td>Pino → anodo LED → catodo → resistor 220Ω → GND</td></tr>
+        <tr><td>LED0</td><td class="gpio out">GPIO6</td><td>Pino → anodo, catodo → 330 Ω → GND</td></tr>
+        <tr><td>LED1</td><td class="gpio out">GPIO7</td><td>Pino → anodo, catodo → 330 Ω → GND</td></tr>
       </table>
-      <p class="footnote">220Ω é ponto de partida seguro para LED comum (vermelho/verde/amarelo) em 3,3V lógico. Ajuste conforme o LED usado.</p>
+      </div>
+      <p class="footnote">
+        Com 330 Ω e LED vermelho (queda ≈2,0 V), a corrente fica em
+        (3,3 − 2,0) / 330 ≈ 3,9 mA — bem abaixo dos 40 mA por pino. LEDs azuis
+        ou brancos têm queda ≈3,0 V e ficariam apagados demais; para esses,
+        use ≈100 Ω.
+      </p>
     </div>
 
   </div>
 
-  <div class="section-title">Pinos para evitar no ESP32-C3</div>
+  <div class="section-title">Pinos para evitar — ESP32 clássico (emissor)</div>
+  <div class="tabela-wrap">
   <table>
     <tr><th>GPIO</th><th>Motivo</th></tr>
-    <tr><td class="gpio">IO2, IO8, IO9</td><td>Strapping pins — nível no boot decide modo de partida do chip. IO9 costuma ser o botão BOOT da placa.</td></tr>
-    <tr><td class="gpio">IO12–IO17</td><td>Ligados à flash SPI interna do módulo. Não expor a componentes externos.</td></tr>
-    <tr><td class="gpio">IO18, IO19</td><td>Controlador USB-Serial/JTAG interno. Usar como GPIO comum desliga a serial nativa da placa.</td></tr>
+    <tr><td class="gpio warn">GPIO12</td><td>Strapping: nível alto no boot ajusta a flash para 1,8 V e pode impedir a partida da placa. É o pior pino da lista.</td></tr>
+    <tr><td class="gpio warn">GPIO0, GPIO2, GPIO15</td><td>Strapping: decidem o modo de partida. GPIO0 é o botão BOOT.</td></tr>
+    <tr><td class="gpio warn">GPIO6–GPIO11</td><td>Flash SPI interna do módulo. Não expor a componentes externos.</td></tr>
+    <tr><td class="gpio warn">GPIO1, GPIO3</td><td>UART0 — é por onde a placa é gravada e o monitor serial funciona.</td></tr>
+    <tr><td class="gpio warn">GPIO34–GPIO39</td><td>Entrada-somente e <strong>sem pull-up interno</strong>. Um botão aqui exige resistor externo, senão o pino flutua.</td></tr>
   </table>
+  </div>
+  <p class="footnote">
+    GPIO4 e GPIO5 estão livres dessas restrições. O GPIO5 é amostrado no reset,
+    mas só para escolher a temporização do modo SDIO escravo, que este projeto
+    não usa — e ele já tem pull-up por padrão no reset, então parte em nível
+    alto mesmo antes de o <code>pinMode</code> rodar. O JTAG do clássico fica em
+    GPIO12–GPIO15, <em>não</em> em GPIO4.
+  </p>
 
-  <p class="footnote">Alimentação: saída 5V do L7805CV vai no pino 5V/VIN de cada placa (não no 3V3), e o GND do L7805CV é comum ao GND das duas placas e ao GND da pilha 12V. O regulador 3,3V já embutido na DevKitM-1 cuida da conversão 5V → 3,3V interna do chip.</p>
+  <div class="section-title">Pinos para evitar — ESP32-C3 (receptor)</div>
+  <div class="tabela-wrap">
+  <table>
+    <tr><th>GPIO</th><th>Motivo</th></tr>
+    <tr><td class="gpio warn">GPIO2, GPIO8, GPIO9</td><td>Strapping — nível no boot decide o modo de partida. GPIO9 costuma ser o botão BOOT da placa.</td></tr>
+    <tr><td class="gpio warn">GPIO11</td><td>VDD_SPI: alimenta a flash. Usar como GPIO comum derruba a placa.</td></tr>
+    <tr><td class="gpio warn">GPIO12–GPIO17</td><td>Flash SPI interna do módulo.</td></tr>
+    <tr><td class="gpio warn">GPIO18, GPIO19</td><td>Controlador USB-Serial/JTAG nativo. Usar como GPIO comum desliga a serial que aparece em <code>/dev/ttyACM*</code>.</td></tr>
+  </table>
+  </div>
+
+  <p class="footnote">
+    Alimentação: a saída 5V do L7805CV vai no pino 5V/VIN de cada placa (nunca
+    no 3V3), e o GND do regulador é comum ao GND das duas placas e ao da fonte
+    de 12 V. O regulador de 3,3 V embarcado em cada DevKit cuida da conversão
+    interna.
+  </p>
+
+  <p class="footnote">
+    Documentação completa em padrão ABNT, com dimensionamento e ensaios, em
+    <code>docs/hardware.html</code> e <code>docs/software.html</code>.
+  </p>
 
 </div>
 </body>

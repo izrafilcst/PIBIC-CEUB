@@ -140,20 +140,17 @@ seguintes.
 
 ## Pendências conhecidas
 
-- **`lib/config_rede.h` está com os dois MACs em placeholder.** A troca do
-  emissor invalidou o MAC antigo; rode `make macs` com as duas placas plugadas.
-  Enquanto estiver assim, os dois sketches avisam no boot.
-- **A combinação ESP32 clássico + C3 nunca foi testada em hardware.** Compila
-  nos dois alvos, mas `make smoke` ainda não rodou com o DevKit novo.
-- O `esquematico.html` ainda descreve o emissor como C3. Os pinos de botão
-  (IO4/IO5) coincidem com os do DevKit clássico, então a fiação desenhada
-  vale; o que está errado é a placa retratada.
-- Os sketches originais mencionavam um `CLAUDE.md` que nunca existiu neste
-  repositório. A justificativa de usar o L7805CV em vez de deep sleep não está
-  documentada em lugar nenhum. Vale registrar antes de esquecer.
-- `esquematico.html` tem correções pendentes apontadas em revisão: falta
-  `<meta name="viewport">`, o símbolo das chaves desenha os dois fios no mesmo
-  ponto (lê como curto) e o GPIO11 não está na lista de pinos a evitar.
+- **O TX do ESP32-C3 receptor está inoperante.** Confirmado por teste de RF
+  invertido: o AP subido pelo C3 fica invisível ao clássico a centímetros de
+  distância, enquanto este lista 11 redes, uma delas a `-94 dBm`. Os quadros
+  chegam e acendem os LEDs, mas o ACK nunca volta, então `make smoke` só passa
+  limpo com `FLAGS_SMOKE=--receptor-sem-tx`. Sem correção em software: exige
+  trocar a placa.
+- A justificativa de usar o L7805CV em vez de deep sleep não está documentada
+  em lugar nenhum. Vale registrar antes de esquecer. (Os sketches originais
+  também mencionavam um `CLAUDE.md` que nunca existiu neste repositório.)
+- A folha de rosto dos dois documentos ABNT tem lacunas `[preencher]` para
+  autor e orientador(a).
 
 ## Histórico: por que as placas são diferentes
 
