@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>Documentação de Software — Emissor/Receptor ESP-NOW</title>
+<title>Documentação de Software — Acionamento de brinquedo por ESP-NOW</title>
 <style>
   @page { size: A4; margin: 3cm 2cm 2cm 3cm; }
 
@@ -116,7 +116,7 @@
   <p class="sem-recuo instituicao">Centro Universitário de Brasília — CEUB</p>
   <p class="sem-recuo">Programa Institucional de Bolsas de Iniciação Científica — PIBIC</p>
 
-  <p class="sem-recuo titulo">Acionamento remoto de indicadores luminosos por ESP-NOW</p>
+  <p class="sem-recuo titulo">Acionamento remoto de dois modos de um brinquedo por ESP-NOW</p>
   <p class="sem-recuo subtitulo">Documento de software: arquitetura, protocolo e verificação</p>
 
   <p class="sem-recuo">Autor: <span class="lacuna">[preencher]</span></p>
@@ -127,11 +127,19 @@
 
 <h1>Introdução</h1>
 
-<p>Este documento descreve o firmware das duas unidades do sistema: a
+<p>Este documento descreve o <em>firmware</em> das duas unidades do sistema: a
 organização do código-fonte, a arquitetura de tempo real adotada, o protocolo de
-aplicação, os mecanismos de segurança e a estratégia de verificação. Os
-circuitos, o dimensionamento dos componentes e os ensaios elétricos são tratados
-em documento separado, dedicado ao hardware.</p>
+aplicação, os mecanismos de segurança implementados em software e a estratégia de
+verificação. A unidade emissora lê dois botões; a receptora converte os comandos
+recebidos em níveis lógicos nos pinos que comandam a base dos transistores de
+potência responsáveis por alimentar cada um dos dois modos de funcionamento do
+brinquedo.</p>
+
+<p>Os circuitos, o dimensionamento dos componentes e os ensaios elétricos são
+tratados em documento separado, dedicado ao hardware. Por serem indissociáveis da
+camada física, o protocolo ESP-NOW e o funcionamento do mecanismo de criptografia
+também são descritos naquele documento; aqui trata-se apenas de como o
+<em>firmware</em> os configura e do que acrescenta por conta própria.</p>
 
 <p>O firmware é escrito em C++ sobre o núcleo Arduino para ESP32, que por sua
 vez se apoia no ESP-IDF e no sistema operacional de tempo real FreeRTOS. A
@@ -233,29 +241,29 @@ emitida.</p>
 <figure class="figura">
   <p class="legenda">Tarefas e filas da unidade emissora</p>
   <div class="desenho">
-    <svg viewBox="0 0 840 400" role="img"
-         aria-label="Diagrama: tarefaBotoes publica em filaEventos, consumida por tarefaEnvio; callback de status alimenta filaStatus, consumida por tarefaDiagnostico">
+    <svg viewBox="0 0 840 370" role="img"
+         aria-label="Diagrama: tarefaBotoes publica em filaEventos, consumida por tarefaEnvio, que chama o rádio; o rádio invoca a função de retorno de status, que alimenta filaStatus, consumida por tarefaDiagnostico">
       <g fill="none" stroke="#000" stroke-width="2">
         <rect x="30" y="40" width="220" height="80" rx="4"/>
         <rect x="330" y="52" width="180" height="56" rx="28"/>
         <rect x="590" y="40" width="220" height="80" rx="4"/>
-        <rect x="590" y="180" width="220" height="70" rx="4"/>
-        <rect x="330" y="192" width="180" height="56" rx="28"/>
-        <rect x="30" y="180" width="220" height="70" rx="4"/>
+        <rect x="590" y="155" width="220" height="65" rx="4" stroke-dasharray="6 4"/>
+        <rect x="590" y="255" width="220" height="80" rx="4"/>
+        <rect x="330" y="267" width="180" height="56" rx="28"/>
+        <rect x="30" y="255" width="220" height="80" rx="4"/>
 
         <line x1="250" y1="80" x2="316" y2="80"/>
         <polygon points="330,80 312,73 312,87" fill="#000" stroke="none"/>
         <line x1="510" y1="80" x2="576" y2="80"/>
         <polygon points="590,80 572,73 572,87" fill="#000" stroke="none"/>
-        <line x1="700" y1="120" x2="700" y2="166"/>
-        <polygon points="700,180 693,162 707,162" fill="#000" stroke="none"/>
-        <line x1="590" y1="215" x2="524" y2="215"/>
-        <polygon points="510,215 528,208 528,222" fill="#000" stroke="none"/>
-        <line x1="330" y1="215" x2="264" y2="215"/>
-        <polygon points="250,215 268,208 268,222" fill="#000" stroke="none"/>
-
-        <rect x="590" y="310" width="220" height="60" rx="4" stroke-dasharray="6 4"/>
-        <line x1="700" y1="120" x2="700" y2="120"/>
+        <line x1="700" y1="120" x2="700" y2="141"/>
+        <polygon points="700,155 693,141 707,141" fill="#000" stroke="none"/>
+        <line x1="700" y1="220" x2="700" y2="241"/>
+        <polygon points="700,255 693,241 707,241" fill="#000" stroke="none"/>
+        <line x1="590" y1="295" x2="524" y2="295"/>
+        <polygon points="510,295 528,288 528,302" fill="#000" stroke="none"/>
+        <line x1="330" y1="295" x2="264" y2="295"/>
+        <polygon points="250,295 268,288 268,302" fill="#000" stroke="none"/>
       </g>
       <g font-family="Times New Roman, serif" text-anchor="middle">
         <text x="140" y="72" font-size="16" font-weight="bold">tarefaBotoes</text>
@@ -269,18 +277,18 @@ emitida.</p>
         <text x="700" y="94" font-size="14">prioridade 2</text>
         <text x="700" y="112" font-size="14">rajada de 3 quadros</text>
 
-        <text x="700" y="205" font-size="15" font-weight="bold">função de retorno</text>
-        <text x="700" y="226" font-size="14">de status do envio</text>
-        <text x="700" y="244" font-size="13">(contexto do rádio)</text>
+        <text x="700" y="182" font-size="15">rádio: esp_now_send()</text>
+        <text x="700" y="203" font-size="13">quadro unicast cifrado</text>
 
-        <text x="420" y="218" font-size="15" font-weight="bold">filaStatus</text>
+        <text x="700" y="285" font-size="15" font-weight="bold">função de retorno</text>
+        <text x="700" y="305" font-size="14">de status do envio</text>
+        <text x="700" y="324" font-size="13">(contexto do rádio)</text>
 
-        <text x="140" y="205" font-size="15" font-weight="bold">tarefaDiagnostico</text>
-        <text x="140" y="226" font-size="14">prioridade 1</text>
-        <text x="140" y="244" font-size="13">relata a cada 10 s</text>
+        <text x="420" y="300" font-size="15" font-weight="bold">filaStatus</text>
 
-        <text x="700" y="336" font-size="15">rádio: esp_now_send()</text>
-        <text x="700" y="357" font-size="13">quadro unicast cifrado</text>
+        <text x="140" y="285" font-size="15" font-weight="bold">tarefaDiagnostico</text>
+        <text x="140" y="305" font-size="14">prioridade 1</text>
+        <text x="140" y="324" font-size="13">relata a cada 10 s</text>
       </g>
     </svg>
   </div>
@@ -303,8 +311,8 @@ prioridade mais alta ficar suspensa aguardando espaço.</p>
 
 <p>A função de retorno do ESP-NOW executa no contexto da tarefa de rede, onde
 qualquer processamento demorado prejudica o rádio. Por essa razão, ela se limita
-a copiar o quadro recebido para uma fila. A decisão sobre os indicadores e o
-acionamento efetivo dos pinos ocorrem em tarefa própria, de prioridade 3, fora
+a copiar o quadro recebido para uma fila. A decisão sobre o estado de cada modo e
+o acionamento efetivo dos pinos ocorrem em tarefa própria, de prioridade 3, fora
 do caminho crítico.</p>
 
 <h1>Tratamento de acionamento mecânico</h1>
@@ -436,7 +444,8 @@ controlado pelo teste, sem depender de hardware nem de espera real.</p>
 
 <p>Cabe observar que o estado lógico associado ao canal é alternado a cada borda
 confirmada. O acionamento comporta-se, portanto, como comutador: um toque
-completo acende o indicador e o toque seguinte o apaga.</p>
+completo liga o modo correspondente do brinquedo e o toque seguinte o
+desliga.</p>
 
 <h1>Protocolo de aplicação</h1>
 
@@ -506,7 +515,7 @@ microcontrolador.</p>
 <pre>typedef struct __attribute__((packed)) {
   uint32_t bootId;  // sorteado a cada boot do emissor, invalida seq antiga
   uint8_t  botao;   // 0 ou 1
-  uint8_t  estado;  // 0 = apagado, 1 = aceso
+  uint8_t  estado;  // 0 = modo desligado, 1 = modo ligado
   uint16_t seq;     // sequência por canal, detecta repetição da rajada
 } pacote_t;</pre>
   <p class="fonte">Fonte: código-fonte do projeto (2026).</p>
@@ -514,12 +523,12 @@ microcontrolador.</p>
 
 <h2>Transmissão de estado absoluto</h2>
 
-<p>O campo <code>estado</code> carrega o valor desejado do indicador, e não uma
-ordem de alternância. A distinção é determinante para a robustez: com uma ordem
-de alternância, a perda de um quadro inverteria permanentemente a relação entre
-botão e indicador, e o erro persistiria até que o operador percebesse a
-inconsistência. Com estado absoluto, o acionamento seguinte reafirma o valor
-correto, e o sistema se recupera sozinho.</p>
+<p>O campo <code>estado</code> carrega o valor desejado da saída, e não uma ordem
+de alternância. A distinção é determinante para a robustez: com uma ordem de
+alternância, a perda de um quadro inverteria permanentemente a relação entre o
+botão e o modo que ele comanda, e o erro persistiria até que o operador
+percebesse a inconsistência. Com estado absoluto, o acionamento seguinte reafirma
+o valor correto, e o sistema se recupera sozinho.</p>
 
 <h2>Identificador de inicialização</h2>
 
@@ -577,7 +586,10 @@ por magnitude passaria a rejeitar todos os quadros subsequentes.</p>
 não é habilitada por padrão. Duas chaves de dezesseis octetos participam: a
 chave primária protege a troca da chave local durante o estabelecimento do par,
 e a chave local protege o tráfego. Ambas residem em arquivo mantido fora do
-controle de versão, do qual apenas um exemplar de exemplo é versionado.</p>
+controle de versão, do qual apenas um exemplar de exemplo é versionado. O
+funcionamento interno do modo CCM e a hierarquia entre as duas chaves são
+detalhados no documento de hardware; interessa aqui apenas o que o
+<em>firmware</em> faz com elas.</p>
 
 <p>Ambas as unidades cadastram a outra como par cifrado. O cadastro recíproco é
 obrigatório: sem ele, a unidade receptora não dispõe do material necessário para
@@ -697,14 +709,14 @@ restaurado automaticamente.</p>
     <tr><td>Criptografia ativa na transmissão</td><td>Aprovado</td></tr>
     <tr><td>Criptografia ativa na recepção</td><td>Aprovado</td></tr>
     <tr><td>Ausência de advertências de configuração</td><td>Aprovado</td></tr>
-    <tr><td>Acionamento do indicador do canal 0</td><td>Aprovado</td></tr>
-    <tr><td>Acionamento do indicador do canal 1</td><td>Aprovado</td></tr>
-    <tr><td>Confirmação de entrega dos quadros</td><td>Não aplicável<sup>(1)</sup></td></tr>
+    <tr><td>Acionamento da saída do canal 0</td><td>Aprovado</td></tr>
+    <tr><td>Acionamento da saída do canal 1</td><td>Aprovado</td></tr>
+    <tr><td>Confirmação de entrega dos quadros</td><td>Não exigida<sup>(1)</sup></td></tr>
   </table>
   <p class="fonte">Fonte: dados obtidos pelo autor em ensaio de bancada (2026).<br>
-    <sup>(1)</sup> O transmissor da unidade receptora é inoperante, conforme
-    documentado no relatório de hardware. O ensaio dispõe de opção específica
-    que suprime essa exigência.</p>
+    <sup>(1)</sup> O protocolo de aplicação transmite estado absoluto com
+    repetição deliberada e, por construção, não depende de confirmação de
+    entrega. O ensaio dispõe de opção específica que suprime essa exigência.</p>
 </figure>
 
 <h2>Ensaios de diagnóstico</h2>

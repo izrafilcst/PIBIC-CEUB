@@ -33,7 +33,7 @@ OPCOES_EMISSOR  ?=
 OPCOES_RECEPTOR ?= --board-options CDCOnBoot=cdc
 FLAGS_SMOKE     ?=
 
-.PHONY: test sketches chaves macs gravar smoke limpar
+.PHONY: test sketches chaves macs gravar smoke teste-rf docs limpar
 
 chaves:
 	@python3 ferramentas/gerar_chaves.py
@@ -65,6 +65,17 @@ teste-rf:
 
 test: build/testes
 	@./build/testes
+
+# Gera os .docx de entrega a partir dos .html, que são a fonte de verdade.
+# Os SVGs são rasterizados em 300 dpi; "Times New Roman" cai em Liberation
+# Serif via fontconfig, que é metricamente compatível.
+docs: docs/hardware.docx docs/software.docx
+
+docs/%.docx: docs/%.html ferramentas/html2docx.py
+	@python3 -c "import docx, cairosvg" 2>/dev/null || { \
+	  echo "faltam dependências: pip install -r ferramentas/requisitos-docs.txt"; \
+	  exit 1; }
+	@python3 ferramentas/html2docx.py $< $@
 
 # A IDE do Arduino só compila arquivos que estejam dentro da pasta do sketch.
 # Liga TUDO de lib/ nas duas pastas: manter uma lista por arquivo aqui já
