@@ -16,6 +16,7 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <esp_mac.h>
 #include <esp_now.h>
 #include <esp_random.h>
 #include <esp_wifi.h>
@@ -33,12 +34,20 @@
 
 // Pinos por família de chip: o mesmo sketch compila no DevKit clássico e no
 // C3, e trocar de placa não exige editar código.
+// GPIO4/5 nos dois alvos: é como a bancada está montada, verificado com uma
+// varredura de nível pino a pino.
+//
+// No ESP32 clássico o GPIO4 é um GPIO comum, sem função especial. O GPIO5 é
+// strapping — amostrado no reset para escolher o timing de SDIO slave — mas
+// esse strap não interfere no boot a partir da flash, e o pull-up (interno
+// mais o externo de 10k da bancada) o mantém alto justamente no instante em
+// que ele é lido. Segurar o botão durante o reset é inofensivo aqui.
+//
+// O JTAG do clássico fica em GPIO12..15, não em GPIO4: uma versão anterior
+// deste comentário dizia o contrário e motivou a escolha de GPIO32/33.
 #if CONFIG_IDF_TARGET_ESP32
-  // No ESP32 clássico o GPIO5 é strapping (precisa estar alto no boot) e o
-  // GPIO4 fica no barramento de JTAG. GPIO32/33 não são nada disso e têm
-  // pull-up interno — é onde os botões devem ir.
-  #define BOTAO0_PIN 32
-  #define BOTAO1_PIN 33
+  #define BOTAO0_PIN 4
+  #define BOTAO1_PIN 5
 #elif CONFIG_IDF_TARGET_ESP32C3
   #define BOTAO0_PIN 4
   #define BOTAO1_PIN 5
@@ -196,9 +205,18 @@ void setup() {
   // Depois do WiFi ligado o RNG por hardware tem entropia de verdade.
   bootId = esp_random();
 
+  // Lê o próprio MAC uma vez e reusa: no banner e na checagem de identidade.
+  // NÃO usar WiFi.macAddress() aqui: no ESP32 clássico ela devolve zeros até o
+  // netif da STA subir, o que só acontece alguns milissegundos depois de
+  // WiFi.mode(). esp_read_mac() lê da efuse e vale desde o primeiro instante,
+  // nos dois alvos — e é o mesmo valor que o ESP-NOW usa como remetente.
+  uint8_t meuMac[6];
+  esp_read_mac(meuMac, ESP_MAC_WIFI_STA);
+  char meuMacTexto[TAM_MAC_TEXTO];
+  formatarMac(meuMacTexto, sizeof(meuMacTexto), meuMac);
+
   char banner[256];
-  montarBanner(banner, sizeof(banner), PAPEL_EMISSOR,
-               WiFi.macAddress().c_str(), bootId);
+  montarBanner(banner, sizeof(banner), PAPEL_EMISSOR, meuMacTexto, bootId);
   Serial.print(banner);
 
   uint8_t canalAtual = 0;
@@ -220,8 +238,6 @@ void setup() {
 
   // Firmware trocado de placa: o MAC gravado em config_rede.h não bate com o
   // MAC real desta placa.
-  uint8_t meuMac[6];
-  WiFi.macAddress(meuMac);
   if (!macEhPlaceholder(MAC_EMISSOR) && !remetenteAutorizado(meuMac, MAC_EMISSOR)) {
     Serial.println("  *** ATENCAO: esta placa nao e a listada como EMISSOR ***");
     Serial.println("  *** em config_rede.h. Firmware trocado de placa?     ***");

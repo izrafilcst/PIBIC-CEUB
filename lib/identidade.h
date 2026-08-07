@@ -16,6 +16,14 @@ const char *nomeDoPapel(Papel p);
 // do repositório, tudo zero ou broadcast. Nenhum deles é um unicast válido.
 bool macEhPlaceholder(const uint8_t *mac);
 
+// Buffer suficiente para "AA:BB:CC:DD:EE:FF" mais o NUL.
+static const size_t TAM_MAC_TEXTO = 18;
+
+// Escreve o MAC como "AA:BB:CC:DD:EE:FF" em `saida`, sempre terminando em NUL.
+// O sketch lê os bytes da efuse (esp_read_mac) em vez de WiFi.macAddress(),
+// que no ESP32 clássico ainda devolve zeros no começo do setup().
+void formatarMac(char *saida, size_t tamanho, const uint8_t *mac);
+
 // Escreve o banner de boot em `saida`, sempre terminando em NUL.
 // Devolve quantos bytes seriam necessários (como snprintf).
 int montarBanner(char *saida, size_t tamanho, Papel papel, const char *mac,

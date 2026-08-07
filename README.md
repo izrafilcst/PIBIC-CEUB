@@ -4,7 +4,7 @@ Dois botões controlam dois LEDs em outra placa, por ESP-NOW.
 
 | Papel | Placa | Serial | Pinos |
 |---|---|---|---|
-| Emissor | ESP32 DevKit clássico | `/dev/ttyUSB*` | botões em GPIO32/33 |
+| Emissor | ESP32 DevKit clássico | `/dev/ttyUSB*` | botões em GPIO4/5 |
 | Receptor | ESP32-C3 | `/dev/ttyACM*` | LEDs em GPIO6/7 |
 
 As duas pontas são chips diferentes de propósito: o par de C3 original não
@@ -130,9 +130,9 @@ seguintes.
   Enquanto estiver assim, os dois sketches avisam no boot.
 - **A combinação ESP32 clássico + C3 nunca foi testada em hardware.** Compila
   nos dois alvos, mas `make smoke` ainda não rodou com o DevKit novo.
-- O `esquematico.html` ainda descreve o emissor como C3 com botões em IO4/IO5.
-  Com o DevKit clássico os botões passaram para GPIO32/33, então o desenho
-  está desatualizado.
+- O `esquematico.html` ainda descreve o emissor como C3. Os pinos de botão
+  (IO4/IO5) coincidem com os do DevKit clássico, então a fiação desenhada
+  vale; o que está errado é a placa retratada.
 - Os sketches originais mencionavam um `CLAUDE.md` que nunca existiu neste
   repositório. A justificativa de usar o L7805CV em vez de deep sleep não está
   documentada em lugar nenhum. Vale registrar antes de esquecer.

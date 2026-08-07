@@ -23,6 +23,19 @@ bool macEhPlaceholder(const uint8_t *mac) {
   return ehPlaceholder || tudoZero || tudoUm;
 }
 
+void formatarMac(char *saida, size_t tamanho, const uint8_t *mac) {
+  if (saida == NULL || tamanho == 0) return;
+
+  if (mac == NULL) {
+    snprintf(saida, tamanho, "??:??:??:??:??:??");
+  } else {
+    snprintf(saida, tamanho, "%02X:%02X:%02X:%02X:%02X:%02X",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  }
+
+  saida[tamanho - 1] = '\0';
+}
+
 int montarBanner(char *saida, size_t tamanho, Papel papel, const char *mac,
                  uint32_t bootId) {
   if (saida == NULL || tamanho == 0) return 0;

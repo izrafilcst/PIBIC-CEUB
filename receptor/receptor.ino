@@ -13,6 +13,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <esp_now.h>
+#include <esp_mac.h>
 #include <esp_random.h>
 #include <esp_wifi.h>
 #include <inttypes.h>
@@ -126,11 +127,24 @@ void setup() {
   WiFi.setSleep(false);
   esp_wifi_set_channel(CANAL_ESPNOW, WIFI_SECOND_CHAN_NONE);
 
+  // Ver comentário equivalente no emissor: WiFi.macAddress() ainda não vale
+  // neste ponto do setup(). A efuse vale. Lê uma vez, usa no banner e na
+  // checagem de identidade.
+  uint8_t meuMac[6];
+  esp_read_mac(meuMac, ESP_MAC_WIFI_STA);
+  char meuMacTexto[TAM_MAC_TEXTO];
+  formatarMac(meuMacTexto, sizeof(meuMacTexto), meuMac);
+
   char banner[256];
-  montarBanner(banner, sizeof(banner), PAPEL_RECEPTOR,
-               WiFi.macAddress().c_str(), esp_random());
+  montarBanner(banner, sizeof(banner), PAPEL_RECEPTOR, meuMacTexto,
+               esp_random());
   Serial.print(banner);
-  Serial.println("  copie o MAC acima para MAC_RECEPTOR em lib/config_rede.h");
+
+  // Só pede para copiar quando config_rede.h ainda não tem o MAC desta placa.
+  // Incondicional, a dica contradizia o próprio banner depois de `make macs`.
+  if (!remetenteAutorizado(meuMac, MAC_RECEPTOR)) {
+    Serial.println("  copie o MAC acima para MAC_RECEPTOR em lib/config_rede.h");
+  }
 
   uint8_t canalAtual = 0;
   wifi_second_chan_t canalSecundario = WIFI_SECOND_CHAN_NONE;
@@ -149,8 +163,6 @@ void setup() {
     Serial.println("  *** O filtro de remetente vai descartar tudo.       ***");
   }
 
-  uint8_t meuMac[6];
-  WiFi.macAddress(meuMac);
   if (!macEhPlaceholder(MAC_RECEPTOR) &&
       !remetenteAutorizado(meuMac, MAC_RECEPTOR)) {
     Serial.println("  *** ATENCAO: esta placa nao e a listada como RECEPTOR ***");
