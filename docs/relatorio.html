@@ -112,6 +112,15 @@
     text-align: left;
   }
 
+  /* ---- Glossário (elemento pós-textual, NBR 14724) ---- */
+  dl.glossario { margin: 1em 0 0; }
+  dl.glossario dt {
+    font-weight: bold; margin-top: 0.8em; page-break-after: avoid;
+  }
+  dl.glossario dd {
+    margin: 0.2em 0 0 1.25cm; text-align: justify;
+  }
+
   @media print {
     html { background: #fff; }
     body { max-width: none; margin: 0; padding: 0; }
@@ -132,7 +141,7 @@
   <p class="sem-recuo local">Brasília<br>2026</p>
 </div>
 
-<h1 class="sem-numero">Resumo</h1>
+<h1 class="sem-numero fora-do-sumario">Resumo</h1>
 
 <p class="sem-recuo">Este trabalho descreve o projeto, a implementação e a
 verificação de um sistema embarcado de duas unidades para acionamento remoto
@@ -143,25 +152,58 @@ brinquedo, que decifra os quadros recebidos e aciona, por meio de
 transistores Darlington TIP122 em configuração de chave de lado baixo, a
 alimentação de cada modo. O firmware, escrito em C++ sobre o núcleo Arduino
 para ESP32 e o sistema operacional de tempo real FreeRTOS, separa a lógica de
-decisão — máquina de estados de debounce, deduplicação por número de
+decisão: máquina de estados de debounce, deduplicação por número de
 sequência com tratamento de retorno ao zero (wraparound), verificação de
-remetente em tempo constante — das chamadas de plataforma, o que permite
+remetente em tempo constante, das chamadas de plataforma, o que permite
 testá-la inteiramente na máquina de desenvolvimento, sem hardware. A
 comunicação emprega a cifragem nativa do ESP-NOW (AES-CCM, com hierarquia de
 chaves PMK/LMK), transmite estado absoluto em vez de comandos de alternância,
 e repete cada evento três vezes para tolerar perdas ocasionais de quadro. O
-sistema foi verificado por uma bateria de quarenta e oito testes de host, por
+sistema foi verificado por uma bateria de testes de host, por
 um ensaio automatizado que grava e reinicia as duas unidades, e por ensaios
 de bancada de radiofrequência, continuidade de pinos e acionamento funcional,
-que não registraram perda de eventos. Permanecem como limitações a
-caracterização elétrica da carga do brinquedo, cuja tensão e corrente de
-alimentação ainda não foram medidas, e o levantamento quantitativo do alcance
-do enlace de rádio, ambos discutidos como trabalhos futuros.</p>
+que não registraram perda de eventos. A unidade receptora e as cargas do
+brinquedo, uma linha de LEDs e um micromotor N20, são alimentadas por uma única
+célula de lítio recarregável 14500, com carga por conector USB-C e conversor
+elevador que estabelece um trilho de 5,5 V; a unidade emissora conserva
+alimentação própria por bateria alcalina. Permanecem como limitações a medição da
+corrente de carga de cada modo e o levantamento quantitativo do alcance do
+enlace de rádio.</p>
 
 <p class="sem-recuo"><strong>Palavras-chave</strong>: Sistemas embarcados.
 ESP-NOW. FreeRTOS. Criptografia AES-CCM. Acionamento remoto.</p>
 
-<h1 class="sem-numero">Sumário</h1>
+<h1 class="sem-numero fora-do-sumario">Nota ao leitor</h1>
+
+<p class="sem-recuo">Este relatório documenta a contribuição de
+<em>hardware</em> e sistemas embarcados de um projeto cuja fundamentação
+científica pertence à área médica. Ele foi escrito para ser lido por quem não
+tem formação em eletrônica ou em programação, e essa escolha orienta o texto
+inteiro:</p>
+
+<ul>
+  <li>Todo termo técnico é explicado na primeira vez em que aparece, e reunido
+  ao final no Glossário. Nenhuma seção pressupõe leitura das anteriores para
+  que o vocabulário faça sentido.</li>
+  <li>As decisões de projeto são apresentadas com a justificativa que as
+  sustenta, incluindo as alternativas descartadas e o motivo do descarte. Onde
+  uma decisão anterior foi revista, o texto registra o erro e a correção, em vez
+  de apagá-los, porque o percurso faz parte do resultado.</li>
+  <li>Números obtidos por cálculo de projeto são distinguidos explicitamente dos
+  obtidos por medição. Onde a medição ainda não foi feita, o texto diz.</li>
+  <li>Os esquemas elétricos empregam os símbolos gráficos normalizados pela
+  ABNT NBR IEC 60617, e cada figura traz legenda descritiva do que representa.
+  A leitura das figuras é auxiliar: nenhuma informação essencial aparece apenas
+  em desenho.</li>
+</ul>
+
+<p class="sem-recuo">A topologia de alimentação descrita neste documento
+substituiu, em agosto de 2026, uma versão anterior baseada em baterias
+descartáveis. A versão anterior está arquivada em
+<code>docs/relatorio-v1-a23.html</code>, e a lista do que mudou, seção por
+seção, em <code>docs/registro-de-mudancas.md</code>.</p>
+
+<h1 class="sem-numero fora-do-sumario">Sumário</h1>
 <div class="sumario-campo"></div>
 
 <h1>Introdução</h1>
@@ -170,18 +212,58 @@ ESP-NOW. FreeRTOS. Criptografia AES-CCM. Acionamento remoto.</p>
 remoto desenvolvido no projeto: a arquitetura de firmware das duas unidades,
 os circuitos de entrada e de saída em potência, o dimensionamento dos
 componentes, o enlace de rádio e o mecanismo de cifragem empregados, e os
-ensaios realizados — de host e de bancada — para verificar a montagem. Optou-se
+ensaios realizados, de host e de bancada, para verificar a montagem. Optou-se
 por um único documento, e não por um par separado de relatórios de hardware e
 de software: o protocolo de aplicação e a criptografia do enlace são
 configurados inteiramente pelo firmware, de modo que descrevê-los junto da
 camada elétrica exigiria repetir o mesmo conteúdo em dois lugares ou fixar uma
-fronteira artificial entre "o que é rádio" e "o que é código" — os dois nunca
+fronteira artificial entre "o que é rádio" e "o que é código", os dois nunca
 deixam de ser a mesma decisão de projeto.</p>
 
 <p>O firmware é escrito em C++ sobre o núcleo Arduino para ESP32, que por sua
 vez se apoia no ESP-IDF e no sistema operacional de tempo real FreeRTOS. A
 compilação foi verificada com o núcleo <code>esp32:esp32</code> na versão
 3.0.7.</p>
+
+<h2>O sistema em termos não técnicos</h2>
+
+<p>Antes do detalhamento técnico, convém descrever o que o sistema faz, em
+linguagem corrente, para que as seções seguintes possam ser lidas com essa
+referência.</p>
+
+<p>Um brinquedo comum possui uma chave que seleciona dois modos de
+funcionamento: em um deles acendem-se luzes, no outro acionam-se também as
+luzes e o movimento. Para operá-lo, é preciso alcançar a chave e movimentá-la
+com os dedos. O sistema descrito neste trabalho transfere essa operação para
+dois botões grandes, instalados em uma caixa separada, que podem ser
+posicionados onde for conveniente e acionados com pouca força.</p>
+
+<p>Os dois componentes se comunicam por rádio, sem fio entre eles, sem
+necessidade de rede sem fio doméstica e sem qualquer aplicativo ou telefone.
+Pressionar um botão faz o brinquedo mudar de modo em alguns milissegundos.</p>
+
+<p>Três exigências orientaram o projeto e explicam boa parte das decisões
+técnicas descritas adiante:</p>
+
+<ul>
+  <li><strong>Confiabilidade.</strong> Um comando não pode se perder. Como
+  transmissões de rádio ocasionalmente falham, o sistema envia cada comando três
+  vezes e transmite sempre o estado desejado completo, e não a instrução
+  "inverta o estado atual". Assim, mesmo que uma transmissão se perca, a
+  seguinte corrige a situação, em vez de agravá-la.</li>
+  <li><strong>Segurança.</strong> As mensagens são cifradas e o receptor só
+  aceita mensagens do emissor específico com que foi emparelhado, de modo que um
+  aparelho vizinho não possa acionar o brinquedo, por acidente ou de
+  propósito.</li>
+  <li><strong>Estado seguro em falha.</strong> Se a alimentação for interrompida,
+  se o rádio perder o enlace ou se qualquer das partes reiniciar, o brinquedo
+  permanece desligado. Nenhuma falha resulta em motor acionado sem
+  comando.</li>
+</ul>
+
+<p>O restante do documento descreve como cada uma dessas exigências foi
+atendida, quais componentes foram escolhidos e por quê, e quais verificações
+foram feitas para confirmar que o resultado funciona.</p>
 
 <h2>Objetivo geral</h2>
 
@@ -205,30 +287,30 @@ depender de infraestrutura de rede intermediária.</p>
       confidencialidade e autenticidade do enlace, complementado por
       verificação explícita de remetente contra quadros de origem
       desconhecida.</li>
-  <li>Estruturar o firmware de modo que a lógica de decisão — filtragem de
-      repique mecânico, deduplicação de quadros, verificação de segurança —
+  <li>Estruturar o firmware de modo que a lógica de decisão, filtragem de
+      repique mecânico, deduplicação de quadros, verificação de segurança,
       seja verificável por testes automatizados executados na máquina de
       desenvolvimento, sem depender de hardware.</li>
   <li>Verificar experimentalmente, por ensaios de bancada, que a cadeia
-      completa — do acionamento do botão ao chaveamento de potência —
+      completa, do acionamento do botão ao chaveamento de potência,
       funciona sem perda de eventos nas condições ensaiadas.</li>
 </ul>
 
 <h2>Justificativa</h2>
 
 <p>Sistemas embarcados de baixo custo para acionamento remoto sem fio
-enfrentam um conjunto recorrente de problemas de engenharia — perda
+enfrentam um conjunto recorrente de problemas de engenharia: perda
 ocasional de pacote em enlaces de rádio não confiáveis, necessidade de
 recuperação automática após reinicialização de qualquer uma das partes, e a
 exigência de que a camada de segurança não dependa de infraestrutura externa
-(ponto de acesso, servidor de autenticação) — que se repetem em aplicações de
+(ponto de acesso, servidor de autenticação), que se repetem em aplicações de
 automação residencial, controle industrial de curto alcance e dispositivos
 de assistência controlados à distância. O ESP-NOW, por dispensar associação a
 ponto de acesso e reduzir a latência de comunicação a poucos milissegundos,
 é uma escolha atrativa para esse tipo de aplicação, mas sua adoção prática
-levanta decisões de protocolo — transmitir estado ou comando, como
+levanta decisões de protocolo, transmitir estado ou comando, como
 deduplicar sem exigir confirmação, como impedir que um quadro de terceiro
-seja aceito mesmo com a cifra nativa habilitada — que não estão resolvidas
+seja aceito mesmo com a cifra nativa habilitada, que não estão resolvidas
 pela documentação de fabricante e que este trabalho examina e documenta com
 base na implementação e nos ensaios realizados.</p>
 
@@ -242,20 +324,20 @@ deste projeto. Sua superfície de segurança foi objeto de pesquisa recente:
 Nozomi Networks (2024) identificou e divulgou responsavelmente uma
 vulnerabilidade de repetição de quadros no ESP-NOW (CVE-2024-42483),
 decorrente de o cache de deduplicação do próprio protocolo não distinguir
-tipos de mensagem — achado diretamente relevante à discussão de alcance e
+tipos de mensagem, achado diretamente relevante à discussão de alcance e
 limites da proteção deste projeto, adiante. Chatue <em>et al.</em> (2025)
 propõem e avaliam um esquema de reforço criptográfico sobre o ESP-NOW para
 redes de sensores, na mesma linha de generalizar a defesa além do que o
 protocolo nativo oferece.</p>
 
-<p>A cifragem empregada — AES em modo CCM (<em>Counter with CBC-MAC</em>) —
+<p>A cifragem empregada: AES em modo CCM (<em>Counter with CBC-MAC</em>),
 é especificada formalmente por Whiting, Housley e Ferguson (2003) na RFC
 3610 e por Dworkin (2004) na publicação especial NIST SP 800-38C, que definem
 a combinação do modo contador para confidencialidade com o CBC-MAC para
 autenticidade adotada neste trabalho. A arquitetura de tarefas de tempo real,
 com prioridades fixas atribuídas de acordo com a urgência de cada
-responsabilidade — amostragem de entrada acima de transmissão, transmissão
-acima de diagnóstico —, segue o princípio de escalonamento por prioridade
+responsabilidade, amostragem de entrada acima de transmissão, transmissão
+acima de diagnóstico, segue o princípio de escalonamento por prioridade
 fixa formalizado por Liu e Layland (1973), ainda referência corrente para
 sistemas de tempo real de tarefa única em processador único, e discutido em
 aplicações FreeRTOS por Oliveira e Lima (2023), que avaliam escalonamento e
@@ -267,17 +349,6 @@ formalizado pela RFC 1982 (Elz; Bush, 1996) para o mesmo problema em outros
 protocolos. O tratamento de repique mecânico por máquina de estados segue a
 prática consolidada descrita por Ganssle (2026) para debounce em sistemas
 embarcados.</p>
-
-<h2>Escopo</h2>
-
-<p>Descrevem-se aqui os elementos verificados experimentalmente. Os valores
-de tensão, corrente e resistência apresentados correspondem à montagem
-efetivamente ensaiada, e os resultados registrados na seção de ensaios foram
-obtidos com os instrumentos e sketches descritos no próprio documento. Onde um
-valor depende de uma medida ainda não realizada — notadamente a tensão e a
-corrente de alimentação do brinquedo —, isso é declarado explicitamente no
-texto, e o cálculo correspondente é identificado como estimativa, não como
-valor verificado.</p>
 
 <h1>Visão geral do sistema</h1>
 
@@ -291,30 +362,47 @@ potência.</p>
 <figure class="figura">
   <p class="legenda">Diagrama de blocos do sistema</p>
   <div class="desenho">
-    <svg viewBox="0 0 880 300" role="img"
-         aria-label="Diagrama de blocos: unidade emissora e unidade receptora ligadas por enlace ESP-NOW">
+    <svg viewBox="0 0 880 362" role="img"
+         aria-label="Diagrama de blocos: unidade emissora alimentada por bateria alcalina de 12 V com regulador linear, e unidade receptora alimentada por célula de lítio 14500 com conversor elevador para 5,5 V, ligadas por enlace ESP-NOW cifrado; a receptora comanda a linha de LEDs e o motor N20 do brinquedo pelo mesmo trilho de 5,5 V">
       <g fill="none" stroke="#000" stroke-width="2">
-        <rect x="20" y="70" width="310" height="150" rx="4"/>
-        <rect x="550" y="70" width="310" height="150" rx="4"/>
+        <rect x="20" y="60" width="310" height="190" rx="4"/>
+        <rect x="550" y="60" width="310" height="190" rx="4"/>
         <!-- enlace principal -->
-        <line x1="330" y1="145" x2="536" y2="145"/>
-        <polygon points="550,145 532,138 532,152" fill="#000" stroke="none"/>
+        <line x1="330" y1="155" x2="536" y2="155"/>
+        <polygon points="550,155 532,148 532,162" fill="#000" stroke="none"/>
+        <!-- separador do bloco de alimentacao -->
+        <line x1="20" y1="163" x2="330" y2="163" stroke-width="1" stroke-dasharray="4 3"/>
+        <line x1="550" y1="163" x2="860" y2="163" stroke-width="1" stroke-dasharray="4 3"/>
       </g>
       <g font-family="Times New Roman, serif" text-anchor="middle">
-        <text x="175" y="105" font-size="17" font-weight="bold">Unidade emissora</text>
-        <text x="175" y="133" font-size="15">ESP32 DevKit V1</text>
-        <text x="175" y="160" font-size="15">2 botões — GPIO4 e GPIO5</text>
-        <text x="175" y="187" font-size="15">Serial: /dev/ttyUSB0</text>
+        <text x="175" y="90" font-size="17" font-weight="bold">Unidade emissora</text>
+        <text x="175" y="116" font-size="15">ESP32 DevKit V1</text>
+        <text x="175" y="142" font-size="15">S1 e S2: GPIO4 e GPIO5</text>
+        <text x="175" y="192" font-size="13">Alimentação: BT2, 12 V (A23)</text>
+        <text x="175" y="214" font-size="13">L7805CV, 5 V no pino VIN</text>
+        <text x="175" y="236" font-size="13">terra isolado</text>
 
-        <text x="705" y="105" font-size="17" font-weight="bold">Unidade receptora</text>
-        <text x="705" y="133" font-size="15">ESP32-C3 (embarcada no brinquedo)</text>
-        <text x="705" y="160" font-size="15">2 saídas de potência — GPIO6 e GPIO7</text>
-        <text x="705" y="187" font-size="15">Q1 e Q2: TIP122 — modos 1 e 2</text>
+        <text x="705" y="90" font-size="17" font-weight="bold">Unidade receptora</text>
+        <text x="705" y="116" font-size="15">ESP32-C3 (embarcada no brinquedo)</text>
+        <text x="705" y="142" font-size="15">Q1 e Q2: TIP122, GPIO6 e GPIO7</text>
+        <text x="705" y="192" font-size="13">Alimentação: BT1, célula de lítio 14500</text>
+        <text x="705" y="214" font-size="13">TP4056 e MT3608, trilho de 5,5 V</text>
+        <text x="705" y="236" font-size="13">terra único, comum às cargas</text>
 
-        <text x="433" y="113" font-size="12">ESP-NOW · 2,4 GHz</text>
-        <text x="433" y="131" font-size="12">canal 1</text>
-        <text x="433" y="175" font-size="12">quadro unicast cifrado</text>
-        <text x="433" y="193" font-size="12">AES-CCM · 128 bits</text>
+        <text x="440" y="123" font-size="12">ESP-NOW · 2,4 GHz</text>
+        <text x="440" y="141" font-size="12">canal 1</text>
+        <text x="440" y="185" font-size="12">quadro unicast cifrado</text>
+        <text x="440" y="203" font-size="12">AES-CCM · 128 bits</text>
+      </g>
+      <!-- dominio de potencia do brinquedo -->
+      <g fill="none" stroke="#000" stroke-width="2">
+        <rect x="628" y="280" width="224" height="56" rx="4" stroke-dasharray="6 4"/>
+        <line x1="740" y1="250" x2="740" y2="280"/>
+        <polygon points="740,280 733,264 747,264" fill="#000" stroke="none"/>
+      </g>
+      <g font-family="Times New Roman, serif" text-anchor="middle">
+        <text x="740" y="303" font-size="13.5">M1: linha de LEDs · M2: motor N20</text>
+        <text x="740" y="323" font-size="13.5">mesmo trilho de 5,5 V</text>
       </g>
     </svg>
   </div>
@@ -342,10 +430,23 @@ efetivamente decidiu essa repartição de papéis entre as duas famílias.</p>
     </tr>
     <tr><td>A1</td><td>Placa de desenvolvimento</td><td>ESP32 DevKit V1 (ESP32-D0WDQ6, rev. v1.0)</td><td class="num">1</td><td>Emissora</td></tr>
     <tr><td>A2</td><td>Placa de desenvolvimento</td><td>ESP32-C3 (rev. v0.4)</td><td class="num">1</td><td>Receptora</td></tr>
-    <tr><td>S1, S2</td><td>Botão de pressão</td><td>Táctil, contato normalmente aberto</td><td class="num">2</td><td>Emissora</td></tr>
-    <tr><td>Q1, Q2</td><td>Transistor Darlington NPN</td><td>TIP122, TO-220 (100 V, 5 A, <em>h</em><sub>FE</sub> ≥ 1000)</td><td class="num">2</td><td>Receptora</td></tr>
+    <tr><td>S1, S2</td><td>Botão de pressão</td><td>Botão de fliperama, contato normalmente aberto</td><td class="num">2</td><td>Emissora</td></tr>
+    <tr><td>Q1, Q2</td><td>Transistor Darlington NPN</td><td>TIP122, TO-220 (100 V, 5 A, <em>β</em><sub>forçado</sub> 250 em saturação)</td><td class="num">2</td><td>Receptora</td></tr>
     <tr><td>R<sub>B1</sub>, R<sub>B2</sub></td><td>Resistor</td><td>330 Ω, 1/4 W (limitador de base)</td><td class="num">2</td><td>Receptora</td></tr>
-    <tr><td>M1, M2</td><td>Carga: modo do brinquedo</td><td>Eletrônica do brinquedo, alimentada em <span class="lacuna">[V<sub>CC</sub> ainda não medido — ver seção de limitações]</span></td><td class="num">2</td><td>Receptora</td></tr>
+    <tr><td>D1</td><td>Diodo de roda-livre</td><td>1N4007, retificador de silício (1 A, 1000 V)</td><td class="num">1</td><td>Receptora</td></tr>
+    <tr><td>M1</td><td>Carga: modo 1</td><td>Linha de LEDs do brinquedo</td><td class="num">1</td><td>Brinquedo</td></tr>
+    <tr><td>M2</td><td>Carga: modo 2</td><td>Micromotor de corrente contínua N20, com escovas</td><td class="num">1</td><td>Brinquedo</td></tr>
+    <tr><td>BT1</td><td>Célula de lítio recarregável</td><td>14500, 3,7 V nominal, cerca de 800 mAh, topo saliente</td><td class="num">1</td><td>Receptora</td></tr>
+    <tr><td>U1</td><td>Módulo carregador com proteção</td><td>TP4056 com DW01A e FS8205, entrada USB-C</td><td class="num">1</td><td>Receptora</td></tr>
+    <tr><td>R<sub>PROG</sub></td><td>Resistor SMD 0805</td><td>3 kΩ (<code>302</code>), programa 0,37 A de carga</td><td class="num">1</td><td>Receptora</td></tr>
+    <tr><td>U2</td><td>Módulo conversor elevador</td><td>MT3608, ajustável, chave interna de 4 A, ajustado para 5,5 V</td><td class="num">1</td><td>Receptora</td></tr>
+    <tr><td>S3</td><td>Chave geral</td><td>Chave original do brinquedo, de quatro estágios, reaproveitada</td><td class="num">1</td><td>Brinquedo</td></tr>
+    <tr><td>C<sub>in</sub></td><td>Capacitor eletrolítico</td><td>100 µF, 16 V (entrada do conversor)</td><td class="num">1</td><td>Receptora</td></tr>
+    <tr><td>C<sub>out</sub></td><td>Capacitor eletrolítico</td><td>220 µF, 16 V (saída do conversor)</td><td class="num">1</td><td>Receptora</td></tr>
+    <tr><td>C1 a C3</td><td>Capacitor cerâmico</td><td>100 nF (supressão de ruído de escovas do motor)</td><td class="num">3</td><td>Receptora</td></tr>
+    <tr><td>BT2</td><td>Bateria alcalina</td><td>A23 (23A), 12 V, cerca de 55 mAh</td><td class="num">1</td><td>Emissora</td></tr>
+    <tr><td>U3</td><td>Regulador linear de tensão</td><td>L7805CV, TO-220 (saída 5 V, 1,5 A)</td><td class="num">1</td><td>Emissora</td></tr>
+    <tr><td>C4, C5</td><td>Capacitor cerâmico</td><td>330 nF na entrada e 100 nF na saída do regulador</td><td class="num">2</td><td>Emissora</td></tr>
   </table>
   <p class="fonte">Fonte: elaborado pelo autor (2026).</p>
 </figure>
@@ -353,6 +454,11 @@ efetivamente decidiu essa repartição de papéis entre as duas famílias.</p>
 <p class="nota">O circuito de entrada não emprega resistores discretos: a
 polarização dos botões é obtida pelos resistores de <em>pull-up</em> integrados
 ao próprio microcontrolador, conforme detalhado na seção correspondente.</p>
+
+<p class="nota">As duas unidades empregam topologias de alimentação distintas.
+A receptora, embarcada no brinquedo, migrou para célula de lítio recarregável em
+agosto de 2026; a emissora, externa e acessível, conserva a alimentação por
+bateria descartável. A seção de alimentação justifica a assimetria.</p>
 
 <h2>Unidade emissora</h2>
 
@@ -371,6 +477,14 @@ o processo de gravação, tratado na seção de compilação e gravação.</p>
 
 <h1>Circuito de entrada: botões</h1>
 
+<p class="nota"><strong>Em termos simples.</strong> Um pino de entrada de
+microcontrolador não lê "botão apertado" ou "botão solto": ele lê uma tensão. Com
+o botão solto, se nada mantiver esse pino em uma tensão definida, a leitura
+oscila ao sabor de interferências e o sistema registra acionamentos que não
+ocorreram. Esta seção descreve o arranjo que mantém o pino em tensão conhecida
+enquanto ninguém toca no botão, e o motivo de esse arranjo dispensar componentes
+externos.</p>
+
 <p>Cada botão é ligado em configuração <em>pull-up</em>: um resistor mantém o
 pino do microcontrolador em nível alto enquanto o botão está solto, e o
 fechamento do contato conecta o pino ao terra, levando-o a nível baixo. O
@@ -381,7 +495,9 @@ microcontrolador, habilitados por <em>software</em> com o modo
 <code>INPUT_PULLUP</code>. O circuito externo reduz-se, assim, ao próprio botão
 ligando o pino ao terra, sem nenhum componente discreto. No esquemático, os
 elementos internos ao chip são representados em traço interrompido, para
-distingui-los da fiação que efetivamente se monta.</p>
+distingui-los da fiação que efetivamente se monta. A simbologia adotada nos
+esquemáticos deste documento segue a norma IEC 60617 (International
+Electrotechnical Commission, 2012).</p>
 
 <figure class="figura">
   <p class="legenda">Esquemático do circuito de entrada da unidade emissora</p>
@@ -495,7 +611,7 @@ espúrio algum. Para instalações em que o botão fique distante da placa, ou e
 ambiente eletricamente ruidoso, convém acrescentar um resistor externo de 10 kΩ
 entre o pino e a alimentação de 3,3 V. Os dois resistores se associam em
 paralelo, resultando em cerca de 8,2 kΩ, o que apenas reforça o nível alto em
-repouso — não há conflito elétrico, pois ambos atuam no mesmo sentido.</p>
+repouso, não há conflito elétrico, pois ambos atuam no mesmo sentido.</p>
 
 <p>Cabe registrar que a filtragem de repique é integralmente digital, executada
 em <em>firmware</em> por uma máquina de estados que exige estabilidade da leitura
@@ -509,10 +625,10 @@ portanto, capacitor de filtro no circuito, e o valor do resistor de
 funções especiais que pudessem interferir na inicialização da placa:</p>
 
 <ul>
-  <li><strong>GPIO4</strong> — pino de propósito geral, sem função de
+  <li><strong>GPIO4</strong>: pino de propósito geral, sem função de
       <em>strapping</em> e fora do barramento JTAG, que no ESP32 clássico ocupa
       os pinos GPIO12 a GPIO15.</li>
-  <li><strong>GPIO5</strong> — pino de <em>strapping</em>, amostrado no
+  <li><strong>GPIO5</strong>: pino de <em>strapping</em>, amostrado no
       instante do <em>reset</em> para selecionar a temporização do modo SDIO
       escravo. Como o projeto não utiliza SDIO e a inicialização se dá a partir
       da memória <em>flash</em> interna, esse nível não altera o processo de
@@ -537,107 +653,217 @@ internamente à memória <em>flash</em> SPI.</p>
 
 <h1>Circuito de saída: chaveamento de potência</h1>
 
-<p>Cada um dos dois modos de funcionamento do brinquedo é alimentado por um
-transistor Darlington NPN TIP122 operando como chave de lado baixo
-(<em>low-side switch</em>). O pino do microcontrolador não alimenta a carga: ele
-apenas injeta corrente na base do transistor, que por sua vez fecha o caminho
-entre o terminal negativo da carga e o terra. Assim, os poucos miliampères que o
-ESP32-C3 consegue fornecer comandam uma corrente de coletor ordens de grandeza
-maior, extraída diretamente da fonte do brinquedo.</p>
+<p>Esta seção descreve como o microcontrolador liga e desliga as cargas do
+brinquedo. O problema a resolver é de escala. Um pino de microcontrolador é uma
+saída de <em>comando</em>: ele foi projetado para transmitir uma informação, e
+não para transportar energia. Fornece alguns miliampères, o suficiente para ser
+lido por outro circuito, e nada além disso. As cargas do brinquedo, por outro
+lado, consomem centenas de miliampères. Ligar uma na outra diretamente
+destruiria o pino.</p>
+
+<p>O componente que faz a ponte entre as duas escalas é o transistor. Uma
+analogia útil: o transistor funciona como uma válvula acionada por piloto, do
+tipo usado em instalações hidráulicas. Uma pressão pequena no comando abre uma
+passagem para um fluxo grande, e o comando não precisa suportar esse fluxo, só
+posicionar a válvula. No circuito, o pino do microcontrolador injeta poucos
+miliampères no terminal de comando do transistor, chamado <em>base</em>, e o
+transistor abre um caminho para a corrente da carga, que vem diretamente da
+bateria. Os dois circuitos compartilham apenas a referência elétrica.</p>
+
+<h2>As duas cargas do brinquedo</h2>
+
+<p>A inspeção interna do brinquedo, realizada em agosto de 2026, identificou
+duas cargas distintas, que correspondem aos dois modos de funcionamento
+originais:</p>
+
+<ul>
+  <li><strong>Modo 1, uma linha de LEDs.</strong> Carga puramente eletrônica, de
+  natureza resistiva, sem partes móveis. Liga e desliga sem transitórios
+  relevantes.</li>
+  <li><strong>Modo 2, um micromotor do tipo N20.</strong> Motor de corrente
+  contínua com escovas, de dimensões reduzidas, responsável pelo movimento do
+  brinquedo. Carga <em>indutiva</em>, o que traz duas consequências tratadas
+  adiante: o pico de corrente na partida e a sobretensão no desligamento.</li>
+</ul>
+
+<p>Essa identificação tem peso histórico no projeto e está registrada porque
+mudou decisões. Até essa data, os cálculos de dimensionamento usavam uma carga
+hipotética de 0,5 A em regime e 1,5 A na partida, adotada como valor provisório
+enquanto a medição não era feita. Um N20 fica cerca de uma ordem de grandeza
+abaixo disso, e três conclusões que dependiam do valor provisório precisaram ser
+revistas, incluindo a rejeição do conversor elevador descrita na seção de
+alimentação.</p>
+
+<h2>Topologia: chaveamento de lado baixo</h2>
+
+<p>Cada modo é controlado por um transistor Darlington NPN TIP122 operando como
+chave de <em>lado baixo</em> (<em>low-side switch</em>). A expressão indica de
+que lado da carga o transistor é inserido. Toda carga elétrica tem dois
+terminais, um ligado ao positivo da fonte e outro ao retorno, chamado terra. No
+chaveamento de lado baixo, o positivo permanece permanentemente ligado à carga e
+o transistor é inserido no <em>retorno</em>, entre a carga e o terra. Quando o
+transistor conduz, o circuito se fecha e a carga é alimentada; quando ele corta,
+o caminho de retorno some e a carga desliga.</p>
+
+<p>A alternativa seria o chaveamento de lado alto, com o transistor entre o
+positivo e a carga. Ela foi descartada por uma razão que decorre diretamente da
+física do dispositivo, e que vale explicitar porque é a pergunta mais frequente
+sobre este circuito. Um transistor NPN conduz quando a base fica cerca de 1,4 V
+acima do seu <em>emissor</em>, e não acima do terra. No lado baixo, o emissor
+está ligado ao terra, de modo que a base precisa de 1,4 V absolutos: os 3,3 V do
+pino sobram. No lado alto, o emissor ficaria preso ao terminal da carga, perto de
+5,5 V, e a base precisaria de aproximadamente 6,9 V, valor que um pino de 3,3 V
+nunca alcança. O complementar do TIP122 é o TIP127, do tipo PNP, que funcionaria
+no lado alto; ele exigiria, porém, um segundo transistor apenas para converter o
+nível do pino, sem benefício que compensasse a peça extra.</p>
 
 <p>Os dois ramos são elétrica e logicamente independentes: GPIO6 comanda Q1, que
-alimenta o modo 1, e GPIO7 comanda Q2, que alimenta o modo 2. Não há
-intertravamento em <em>hardware</em> entre eles — os dois modos podem estar
+alimenta os LEDs, e GPIO7 comanda Q2, que alimenta o motor. Não há
+intertravamento em <em>hardware</em> entre eles, os dois modos podem estar
 ativos simultaneamente, e a decisão de permitir ou não essa combinação cabe ao
 protocolo de aplicação, que transmite o estado absoluto de cada canal de forma
-independente (ver seção de limitações).</p>
+independente.</p>
+
+<p>Cabe registrar que o brinquedo original comandava esses mesmos dois modos por
+uma chave mecânica de quatro estágios, de lado alto, na qual o terminal comum
+distribuía o positivo para as linhas de carga. A automação <em>não</em> substitui
+essa chave por transistores no mesmo ponto: como LEDs e motor são cargas de dois
+terminais, cada transistor é inserido no fio de retorno da sua carga, e a chave
+original passa a exercer a função de chave geral, descrita na seção de
+alimentação.</p>
 
 <figure class="figura">
   <p class="legenda">Esquemático do circuito de saída da unidade receptora</p>
   <div class="desenho">
-    <svg viewBox="0 0 760 600" role="img"
-         aria-label="Esquemático: dois transistores TIP122 em chave de lado baixo, com resistores de base de 330 ohms ligados aos pinos GPIO6 e GPIO7, alimentando os dois modos do brinquedo">
+    <svg viewBox="0 0 820 660" role="img"
+         aria-label="Esquemático do circuito de saída: dois transistores Darlington NPN TIP122 em chaveamento de lado baixo, com resistores de base de 330 ohms ligados aos pinos GPIO6 e GPIO7 do ESP32-C3. O ramo superior alimenta a linha de LEDs e o ramo inferior alimenta o motor N20, este último com diodo de roda-livre 1N4007 em antiparalelo e capacitor de 100 nanofarads entre os terminais. Ambos os ramos partem do trilho de 5,5 volts fornecido pelo conversor elevador.">
       <g fill="none" stroke="#000" stroke-width="2" stroke-linecap="square">
 
-        <!-- ============ PLACA ============ -->
-        <rect x="40" y="100" width="250" height="400" rx="4"/>
-        <!-- pino GND (borda inferior) -->
-        <line x1="165" y1="500" x2="165" y2="530"/>
-        <line x1="141" y1="530" x2="189" y2="530"/>
-        <line x1="149" y1="540" x2="181" y2="540"/>
-        <line x1="157" y1="550" x2="173" y2="550"/>
+        <!-- ======== TRILHO +5,5 V DO RAMO 1 (compartilhado com a placa) ======== -->
+        <line x1="160" y1="62" x2="700" y2="62"/>
 
-        <!-- ============ RAMO 1: GPIO6 -> Rb1 -> Q1 -> M1 ============ -->
-        <!-- alimentacao do brinquedo -->
-        <line x1="508" y1="40" x2="548" y2="40"/>
-        <line x1="528" y1="40" x2="528" y2="60"/>
-        <!-- carga: modo 1 -->
-        <rect x="496" y="60" width="64" height="40"/>
+        <!-- ======== PLACA ESP32-C3 ======== -->
+        <rect x="40" y="130" width="240" height="410" rx="4"/>
+        <line x1="160" y1="130" x2="160" y2="62"/>
+        <!-- pino GND e simbolo de terra -->
+        <line x1="160" y1="540" x2="160" y2="568"/>
+        <line x1="136" y1="568" x2="184" y2="568"/>
+        <line x1="144" y1="578" x2="176" y2="578"/>
+        <line x1="152" y1="588" x2="168" y2="588"/>
+
+        <!-- ======== RAMO 1: GPIO6 -> RB1 -> Q1 -> LEDs ======== -->
+        <!-- carga M1 -->
+        <line x1="562" y1="62" x2="562" y2="100"/>
+        <rect x="530" y="100" width="64" height="48"/>
         <!-- coletor -->
-        <line x1="528" y1="100" x2="528" y2="130"/>
-        <line x1="528" y1="130" x2="490" y2="162"/>
-        <!-- base: barra vertical -->
-        <line x1="490" y1="150" x2="490" y2="210"/>
-        <line x1="404" y1="180" x2="490" y2="180"/>
-        <!-- resistor de base -->
-        <rect x="340" y="168" width="64" height="24"/>
-        <line x1="290" y1="180" x2="340" y2="180"/>
-        <!-- emissor com seta -->
-        <line x1="490" y1="198" x2="528" y2="230"/>
-        <line x1="528" y1="230" x2="528" y2="258"/>
-        <!-- terra do ramo -->
-        <line x1="504" y1="258" x2="552" y2="258"/>
-        <line x1="512" y1="268" x2="544" y2="268"/>
-        <line x1="520" y1="278" x2="536" y2="278"/>
+        <line x1="562" y1="148" x2="562" y2="173"/>
+        <line x1="562" y1="173" x2="542" y2="191"/>
+        <!-- envoltoria e barra de base -->
+        <circle cx="562" cy="205" r="42"/>
+        <line x1="542" y1="181" x2="542" y2="229"/>
+        <!-- emissor -->
+        <line x1="542" y1="219" x2="564" y2="237"/>
+        <line x1="564" y1="237" x2="564" y2="276"/>
+        <!-- terra do ramo 1 -->
+        <line x1="540" y1="276" x2="588" y2="276"/>
+        <line x1="548" y1="286" x2="580" y2="286"/>
+        <line x1="556" y1="296" x2="572" y2="296"/>
+        <!-- base: resistor e ligacao ao pino -->
+        <line x1="280" y1="205" x2="402" y2="205"/>
+        <rect x="402" y="193" width="64" height="24"/>
+        <line x1="466" y1="205" x2="542" y2="205"/>
 
-        <!-- ============ RAMO 2: GPIO7 -> Rb2 -> Q2 -> M2 ============ -->
-        <line x1="508" y1="310" x2="548" y2="310"/>
-        <line x1="528" y1="310" x2="528" y2="330"/>
-        <rect x="496" y="330" width="64" height="40"/>
-        <line x1="528" y1="370" x2="528" y2="400"/>
-        <line x1="528" y1="400" x2="490" y2="432"/>
-        <line x1="490" y1="420" x2="490" y2="480"/>
-        <line x1="404" y1="450" x2="490" y2="450"/>
-        <rect x="340" y="438" width="64" height="24"/>
-        <line x1="290" y1="450" x2="340" y2="450"/>
-        <line x1="490" y1="468" x2="528" y2="500"/>
-        <line x1="528" y1="500" x2="528" y2="528"/>
-        <line x1="504" y1="528" x2="552" y2="528"/>
-        <line x1="512" y1="538" x2="544" y2="538"/>
-        <line x1="520" y1="548" x2="536" y2="548"/>
+        <!-- ======== TRILHO +5,5 V DO RAMO 2 ======== -->
+        <line x1="470" y1="316" x2="700" y2="316"/>
+
+        <!-- ======== RAMO 2: GPIO7 -> RB2 -> Q2 -> motor N20 ======== -->
+        <!-- motor -->
+        <line x1="562" y1="316" x2="562" y2="346"/>
+        <circle cx="562" cy="376" r="30"/>
+        <!-- coletor -->
+        <line x1="562" y1="406" x2="562" y2="443"/>
+        <line x1="562" y1="443" x2="542" y2="461"/>
+        <!-- envoltoria e barra de base -->
+        <circle cx="562" cy="475" r="42"/>
+        <line x1="542" y1="451" x2="542" y2="499"/>
+        <!-- emissor -->
+        <line x1="542" y1="489" x2="564" y2="507"/>
+        <line x1="564" y1="507" x2="564" y2="570"/>
+        <!-- terra do ramo 2 -->
+        <line x1="540" y1="570" x2="588" y2="570"/>
+        <line x1="548" y1="580" x2="580" y2="580"/>
+        <line x1="556" y1="590" x2="572" y2="590"/>
+        <!-- base: resistor e ligacao ao pino -->
+        <line x1="280" y1="475" x2="402" y2="475"/>
+        <rect x="402" y="463" width="64" height="24"/>
+        <line x1="466" y1="475" x2="542" y2="475"/>
+
+        <!-- ======== D1: DIODO DE RODA-LIVRE (catodo no +5,5 V) ======== -->
+        <line x1="660" y1="316" x2="660" y2="352"/>
+        <line x1="646" y1="352" x2="674" y2="352"/>
+        <line x1="660" y1="372" x2="660" y2="418"/>
+        <line x1="660" y1="418" x2="562" y2="418"/>
+
+        <!-- ======== C1: SUPRESSAO DE RUIDO DE ESCOVAS ======== -->
+        <line x1="562" y1="346" x2="470" y2="346"/>
+        <line x1="470" y1="346" x2="470" y2="362"/>
+        <line x1="456" y1="362" x2="484" y2="362"/>
+        <line x1="456" y1="372" x2="484" y2="372"/>
+        <line x1="470" y1="372" x2="470" y2="406"/>
+        <line x1="470" y1="406" x2="562" y2="406"/>
       </g>
 
-      <!-- setas do emissor (NPN: apontam para fora da base) -->
+      <!-- setas de emissor: NPN, apontam para fora da base -->
       <g fill="#000" stroke="none">
-        <polygon points="518,222 505.6,218.1 512,210.5"/>
-        <polygon points="518,492 505.6,488.1 512,480.5"/>
+        <polygon points="560,234 546.9,229.2 552.7,222.2"/>
+        <polygon points="560,504 546.9,499.2 552.7,492.2"/>
+        <!-- triangulo do diodo D1, conducao de baixo para cima -->
+        <polygon points="660,352 648,372 672,372"/>
+        <!-- nos de juncao -->
+        <circle cx="562" cy="418" r="4"/>
+        <circle cx="562" cy="346" r="4"/>
+        <circle cx="562" cy="406" r="4"/>
+        <circle cx="562" cy="62" r="4"/>
+        <circle cx="562" cy="316" r="4"/>
+        <circle cx="660" cy="316" r="4"/>
       </g>
 
-      <g font-family="Times New Roman, serif" font-size="16">
-        <text x="282" y="174" text-anchor="end">GPIO6</text>
-        <text x="282" y="444" text-anchor="end">GPIO7</text>
-        <text x="165" y="482" text-anchor="middle">GND</text>
-        <text x="165" y="290" text-anchor="middle" font-size="18" font-weight="bold">ESP32-C3</text>
-        <text x="165" y="316" text-anchor="middle" font-size="15">unidade receptora</text>
-        <text x="165" y="342" text-anchor="middle" font-size="13">embarcada no brinquedo</text>
+      <g font-family="Times New Roman, serif" font-size="15" fill="#000" stroke="none">
+        <text x="272" y="199" text-anchor="end">GPIO6</text>
+        <text x="272" y="469" text-anchor="end">GPIO7</text>
+        <text x="160" y="530" text-anchor="middle" font-size="14">GND</text>
+        <text x="160" y="315" text-anchor="middle" font-size="17" font-weight="bold">ESP32-C3</text>
+        <text x="160" y="340" text-anchor="middle" font-size="14">unidade receptora</text>
+        <text x="160" y="362" text-anchor="middle" font-size="13">embarcada no brinquedo</text>
+        <text x="176" y="112" text-anchor="start" font-size="13">pino 5V</text>
 
-        <text x="372" y="160" text-anchor="middle">R<tspan font-size="12" dy="4">B1</tspan></text>
-        <text x="372" y="210" text-anchor="middle">330 Ω</text>
-        <text x="470" y="228" text-anchor="end">Q1</text>
-        <text x="470" y="248" text-anchor="end" font-size="14">TIP122</text>
-        <text x="572" y="76" text-anchor="start">M1 — modo 1</text>
-        <text x="572" y="96" text-anchor="start" font-size="13">carga do brinquedo</text>
-        <text x="556" y="34" text-anchor="start" font-size="14">+V<tspan font-size="11" dy="3">CC</tspan></text>
+        <text x="710" y="58" text-anchor="start" font-size="14">+5,5 V</text>
+        <text x="710" y="76" text-anchor="start" font-size="12">saída do MT3608</text>
+        <text x="710" y="312" text-anchor="start" font-size="14">+5,5 V</text>
+        <text x="710" y="330" text-anchor="start" font-size="12">mesmo trilho</text>
 
-        <text x="372" y="430" text-anchor="middle">R<tspan font-size="12" dy="4">B2</tspan></text>
-        <text x="372" y="480" text-anchor="middle">330 Ω</text>
-        <text x="470" y="498" text-anchor="end">Q2</text>
-        <text x="470" y="518" text-anchor="end" font-size="14">TIP122</text>
-        <text x="572" y="346" text-anchor="start">M2 — modo 2</text>
-        <text x="572" y="366" text-anchor="start" font-size="13">carga do brinquedo</text>
-        <text x="556" y="304" text-anchor="start" font-size="14">+V<tspan font-size="11" dy="3">CC</tspan></text>
+        <text x="434" y="187" text-anchor="middle">R<tspan font-size="11" dy="4">B1</tspan></text>
+        <text x="434" y="235" text-anchor="middle" font-size="14">330 Ω</text>
+        <text x="434" y="457" text-anchor="middle">R<tspan font-size="11" dy="4">B2</tspan></text>
+        <text x="434" y="505" text-anchor="middle" font-size="14">330 Ω</text>
 
-        <text x="380" y="580" text-anchor="middle" font-size="13">Terra comum obrigatório entre a fonte do brinquedo e a placa</text>
+        <text x="616" y="196" text-anchor="start">Q1</text>
+        <text x="616" y="214" text-anchor="start" font-size="13">TIP122 · NPN</text>
+        <text x="616" y="466" text-anchor="start">Q2</text>
+        <text x="616" y="484" text-anchor="start" font-size="13">TIP122 · NPN</text>
+
+        <text x="608" y="120" text-anchor="start" font-size="14">M1 · linha de LEDs</text>
+        <text x="608" y="138" text-anchor="start" font-size="12">modo 1</text>
+        <text x="562" y="382" text-anchor="middle" font-size="17">M</text>
+        <text x="515" y="286" text-anchor="end" font-size="14">M2 · motor N20</text>
+        <text x="515" y="304" text-anchor="end" font-size="12">modo 2</text>
+
+        <text x="684" y="358" text-anchor="start" font-size="14">D1</text>
+        <text x="684" y="376" text-anchor="start" font-size="12">1N4007</text>
+        <text x="446" y="358" text-anchor="end" font-size="14">C1</text>
+        <text x="446" y="376" text-anchor="end" font-size="12">100 nF</text>
+
+        <text x="410" y="628" text-anchor="middle" font-size="12.5">Os três símbolos de terra representam o mesmo nó elétrico. Símbolos gráficos conforme ABNT NBR IEC 60617.</text>
       </g>
     </svg>
   </div>
@@ -648,19 +874,78 @@ independente (ver seção de limitações).</p>
 
 <p>O TIP122 é um par Darlington NPN integrado em encapsulamento TO-220,
 especificado para 100 V entre coletor e emissor e 5 A de corrente de coletor
-contínua. A característica decisiva para esta aplicação é o ganho: por associar
-dois transistores em cascata, apresenta <em>h</em><sub>FE</sub> mínimo de 1000,
-contra valores da ordem de 100 em um transistor bipolar comum. Isso significa
-que uma corrente de base de poucos miliampères — perfeitamente ao alcance de um
-pino de microcontrolador — basta para saturar o dispositivo com correntes de
-coletor da ordem de ampères.</p>
+contínua. A denominação <em>Darlington</em> designa o arranjo interno: dois
+transistores em cascata, de modo que o primeiro amplifica a corrente de comando
+e entrega o resultado ao segundo. O efeito é multiplicativo, e é isso que
+permite comandar uma corrente de carga elevada com os poucos miliampères que um
+pino de microcontrolador entrega.</p>
 
-<p>O componente já traz, internamente, dois resistores de polarização entre base
-e emissor e um diodo de proteção em antiparalelo entre coletor e emissor. Esse
-diodo integrado dispensa o diodo de roda-livre discreto que seria obrigatório em
-cargas indutivas. A carga aqui prevista é a eletrônica do brinquedo, de natureza
-essencialmente resistiva; ainda assim, caso a inspeção posterior revele algum
-motor ou relé embutido, a proteção já está presente por construção.</p>
+<p>O componente traz, internamente, dois resistores de polarização entre base e
+emissor. Eles cumprem uma função de segurança que a subseção sobre o estado de
+repouso detalha: enquanto o pino do microcontrolador ainda está em alta
+impedância, antes de o firmware assumir o controle, são esses resistores que
+mantêm o transistor cortado.</p>
+
+<p>O TIP122 traz também um diodo integrado entre coletor e emissor.
+<strong>Esse diodo não substitui o diodo de roda-livre discreto</strong>, e o
+motivo está na subseção seguinte. A distinção importa porque a orientação do
+diodo integrado o torna inútil justamente na topologia adotada aqui.</p>
+
+<h2>Diodo de roda-livre</h2>
+
+<p>Um motor é, do ponto de vista elétrico, uma bobina de fio. Bobinas se opõem a
+variações bruscas de corrente: enquanto o motor gira, há energia armazenada no
+campo magnético do enrolamento, e essa energia não desaparece no instante em que
+o transistor corta. Ela se manifesta como uma sobretensão no terminal que foi
+interrompido, de polaridade invertida e amplitude que pode superar em muitas
+vezes a tensão de alimentação. É o mesmo fenômeno que produz a faísca ao abrir
+um contato que alimenta um motor.</p>
+
+<p>O diodo de roda-livre, também chamado diodo de retorno ou
+<em>freewheeling diode</em>, resolve isso oferecendo um caminho fechado para
+essa corrente circular até se extinguir. Ele é ligado em antiparalelo com a
+carga, com <strong>anodo no coletor do transistor e catodo no positivo da
+fonte</strong>. Nessa orientação, permanece reversamente polarizado durante a
+operação normal, sem interferir, e entra em condução apenas no instante do
+desligamento, grampeando a sobretensão em torno de um volt acima do trilho.</p>
+
+<p>Registra-se aqui a correção de uma afirmação presente na versão anterior
+deste relatório, segundo a qual o diodo integrado ao TIP122 dispensaria o
+componente discreto. <strong>A afirmação é incorreta.</strong> O diodo integrado
+tem anodo no emissor e catodo no coletor, de modo que conduz apenas quando o
+coletor é levado <em>abaixo</em> do emissor. No chaveamento de lado baixo, o
+chute indutivo empurra o coletor para <em>cima</em>, e nessa condição o diodo
+integrado permanece reversamente polarizado, sem cumprir função alguma. O diodo
+de corpo de um transistor de efeito de campo tem exatamente a mesma orientação,
+de modo que uma eventual troca de tecnologia de chaveamento não corrigiria a
+omissão. O diodo discreto é, portanto, obrigatório.</p>
+
+<p>Adotou-se o <strong>1N4007</strong>, retificador de silício de uso geral,
+1 A e 1000 V. A escolha de um retificador comum em lugar de um diodo Schottky,
+que teria comutação mais rápida, se justifica pelo modo de acionamento: o
+firmware comanda as saídas por nível lógico simples, sem modulação por largura de
+pulso. Sem chaveamento repetitivo em alta frequência, o tempo de recuperação
+reversa do diodo não constitui restrição, e o 1N4007 oferece maior robustez de
+tensão reversa a custo menor.</p>
+
+<p>A linha de LEDs, por não ser indutiva, não exige diodo de roda-livre. Ele é
+previsto apenas no ramo do motor, conforme a Figura 3.</p>
+
+<h2>Supressão de ruído de escovas</h2>
+
+<p>Um motor de corrente contínua com escovas produz, além do ruído audível,
+ruído elétrico de banda larga: o contato deslizante entre escova e coletor abre e
+fecha continuamente, e cada micro-interrupção gera um transitório. Esse ruído se
+propaga pelos fios de alimentação e pode ser captado pelo receptor de
+radiofrequência do próprio microcontrolador.</p>
+
+<p>A situação exige atenção nesta versão do projeto porque o motor e o rádio de
+2,4 GHz passaram a compartilhar o mesmo trilho de alimentação, o que não ocorria
+na topologia anterior, em que os domínios eram separados. A mitigação padrão
+consiste em três capacitores cerâmicos de 100 nF junto ao motor: um entre os dois
+terminais e um de cada terminal para a carcaça, com a carcaça ligada ao terra. A
+Figura 3 representa apenas o primeiro deles, C1, por clareza do desenho; os
+outros dois são construtivamente idênticos.</p>
 
 <h2>Dimensionamento do resistor de base</h2>
 
@@ -677,73 +962,111 @@ prevista, com 3,3 V na saída do ESP32-C3:</p>
 </p>
 
 <p>O valor situa-se bem abaixo do limite de 40 mA por pino especificado para a
-família, e igualmente abaixo do limite agregado da porta. Do lado do coletor, a
-corrente que essa base é capaz de sustentar em saturação decorre do ganho
-mínimo:</p>
+família, e igualmente abaixo do limite agregado da porta.</p>
+
+<p>Resta determinar qual corrente de carga essa base é capaz de sustentar. Aqui é
+necessário distinguir dois ganhos diferentes que a folha de dados publica, e essa
+distinção é a origem de um erro corrigido nesta versão do relatório.</p>
+
+<p>O TIP122 é especificado com <em>h</em><sub>FE</sub> mínimo de 1000. Esse
+número, porém, é medido em <em>V</em><sub>CE</sub> = 3 V, ou seja, com três volts
+entre coletor e emissor. Essa é a condição de <strong>região ativa</strong>, na
+qual o transistor se comporta como amplificador. Não é a condição em que este
+circuito opera: num trilho de 5,5 V, ter 3 V sobre o transistor significaria
+entregar apenas 2,5 V à carga, o que seria uma falha de projeto e não o
+funcionamento pretendido. Uma chave eletrônica opera em
+<strong>saturação</strong>, com a menor queda possível sobre o dispositivo.</p>
+
+<p>Para a saturação, a folha de dados caracteriza o dispositivo por
+<em>beta forçado</em>, que é a razão entre corrente de coletor e corrente de base
+garantida naquela condição de ensaio. Os pontos publicados,
+<em>V</em><sub>CE(sat)</sub> de 2,0 V para 3 A de coletor com 12 mA de base, e de
+4,0 V para 5 A com 20 mA, correspondem ambos a um beta forçado de 250. É esse o
+número aplicável:</p>
 
 <p class="sem-recuo" style="text-align:center">
-<em>I</em><sub>C(máx)</sub> =
-<em>h</em><sub>FE(mín)</sub> × <em>I</em><sub>B</sub>
-= 1000 × 3,9 mA ≈ 3,9 A
+<em>I</em><sub>C(sat)</sub> =
+<em>β</em><sub>forçado</sub> × <em>I</em><sub>B</sub>
+= 250 × 3,9 mA ≈ 0,98 A
 </p>
 
-<p>A margem é ampla: qualquer carga plausível de brinquedo alimentado em baixa
-tensão consome uma fração desse valor, de modo que o transistor opera em
-saturação profunda, e não na região ativa. Convém verificar o pior caso da queda
-base-emissor, que a folha de dados especifica em até 2,5 V para correntes
-elevadas. Mesmo nessa condição extrema restariam 0,8 V sobre o resistor,
-resultando em 2,4 mA de base e ainda cerca de 2,4 A de capacidade de coletor —
-o dimensionamento permanece válido sem alteração do resistor.</p>
+<p class="nota">Correção em relação à versão anterior deste relatório, que
+calculava 1000 × 3,9 mA ≈ 3,9 A e afirmava haver folga de três ordens de
+grandeza. O valor correto é aproximadamente 0,98 A, e a folga real é de cerca de
+uma ordem de grandeza sobre a corrente de regime estimada. A conclusão de que o
+resistor de 330 Ω é adequado permanece válida; o que estava errado era o número e
+a justificativa, não a decisão.</p>
 
-<p>Adotou-se 330 Ω por atender confortavelmente ao requisito e por já constar do
-estoque de componentes do projeto. Não há vantagem em reduzir o valor: aumentar
-a corrente de base apenas oneraria o pino do microcontrolador sem benefício, já
-que a saturação já está garantida com folga de três ordens de grandeza sobre a
-corrente de carga esperada. Esta conclusão — margem ampla de acionamento da
-base — não depende da tensão de alimentação da carga, e por isso permanece
-válida independentemente da limitação registrada a seguir.</p>
+<p>Aproximadamente 0,98 A é o que o dimensionamento garante, e esse valor cobre
+com folga a corrente de regime de um micromotor N20 somada à linha de LEDs, que
+se situa na faixa de poucas centenas de miliampères. O caso que exige verificação
+não é o regime, e sim o <strong>rotor bloqueado</strong>: se o movimento do
+brinquedo for obstruído, o motor deixa de gerar força contraeletromotriz e a
+corrente sobe ao valor limitado apenas pela resistência ôhmica do enrolamento.
+Esse é o pior caso a comparar com os 0,98 A, e é a medição prioritária listada na
+seção de verificação.</p>
 
-<h2>Queda de saturação e dissipação</h2>
+<p>Convém verificar também o pior caso da queda base-emissor, que a folha de
+dados especifica em até 2,5 V para correntes elevadas. Nessa condição restariam
+0,8 V sobre o resistor, resultando em 2,4 mA de base e cerca de 0,6 A de
+capacidade de coletor. Adotou-se 330 Ω por atender ao requisito e por já constar
+do estoque de componentes do projeto. Reduzir o valor do resistor aumentaria a
+margem de saturação ao custo de maior corrente no pino; a faixa utilizável para
+esta aplicação vai de aproximadamente 150 Ω a 1 kΩ.</p>
+
+<h2>Queda de saturação e escolha da tensão de trilho</h2>
 
 <p>O preço pago pelo alto ganho do Darlington é uma tensão de saturação elevada.
 Enquanto um transistor bipolar comum satura em torno de 0,2 V, o TIP122
-apresenta <em>V</em><sub>CE(sat)</sub> entre aproximadamente 1,0 V e 2,0 V,
-conforme a corrente. Essa queda tem duas consequências práticas que precisam ser
-consideradas na integração com o brinquedo.</p>
+apresenta <em>V</em><sub>CE(sat)</sub> da ordem de 1,0 V na faixa de corrente
+desta aplicação. Essa queda é subtraída da tensão que chega à carga: o motor não
+recebe a tensão do trilho, mas sim
+<em>V</em><sub>trilho</sub> − <em>V</em><sub>CE(sat)</sub>.</p>
 
-<p>A primeira é que a carga não recebe a tensão plena da fonte, mas sim
-<em>V</em><sub>CC</sub> − <em>V</em><sub>CE(sat)</sub>. Em fontes de baixa tensão
-essa perda é proporcionalmente significativa, e a tensão efetivamente entregue
-ao brinquedo deve ser conferida com o circuito em operação, uma vez definida a
-alimentação.</p>
+<p>Na topologia anterior, com trilho de 4,5 V herdado das três pilhas AA, essa
+perda era proporcionalmente severa e o motor recebia entre 73 % e 80 % da tensão
+nominal, com perda perceptível de força. A topologia atual resolve o problema
+invertendo a ordem do raciocínio: em vez de aceitar a tensão que a bateria
+oferece, o trilho passou a ser <em>escolhido</em>, e escolhido justamente para
+compensar a queda do transistor. Daí os 5,5 V:</p>
 
-<p>A segunda é a dissipação no próprio transistor, dada pelo produto da queda
-pela corrente conduzida:</p>
+<p class="sem-recuo" style="text-align:center">
+5,5 V − 1,0 V ≈ 4,5 V na carga
+</p>
+
+<p>que é exatamente a tensão de projeto original do brinquedo. O conversor
+elevador descrito na seção de alimentação não está, portanto, compensando uma
+deficiência da bateria: está compensando a queda do transistor, de modo que o
+acionamento remoto entregue ao motor a mesma tensão que a chave mecânica
+original entregava. Essa equivalência é o critério de sucesso da integração, e
+deve ser verificada por medição da tensão residual sobre a carga.</p>
+
+<h2>Dissipação nos transistores</h2>
+
+<p>A potência dissipada no próprio transistor é o produto da queda pela corrente
+conduzida:</p>
 
 <p class="sem-recuo" style="text-align:center">
 <em>P</em><sub>Q</sub> =
 <em>V</em><sub>CE(sat)</sub> × <em>I</em><sub>C</sub>
 </p>
 
-<p><strong>Todos os valores abaixo são estimativas de projeto, não medições</strong>,
-porque dependem de V<sub>CC</sub> e da corrente de carga do brinquedo, ainda não
-caracterizados (ver seção de limitações). Para uma carga hipotética de 500 mA e
-queda de 1,2 V — valores plausíveis para a faixa de corrente esperada, não
-medidos —, a dissipação estimada é de 0,6 W. O encapsulamento TO-220 sem
-dissipador apresenta resistência térmica junção-ambiente da ordem de 62 °C/W, o
-que corresponderia a uma elevação estimada de cerca de 38 °C sobre a
-temperatura ambiente — dentro do que se considera aceitável. Como regra prática
-de projeto, adota-se o limite de 1 W por transistor sem dissipador; acima disso,
-torna-se necessário acrescentar aleta ao TO-220. Definidos os dois números que
-faltam — tensão e corrente reais do brinquedo —, a verificação se resume a
-repetir esse cálculo com os valores medidos e conferir a tensão residual
-entregue à carga.</p>
+<p><strong>Os valores a seguir são estimativas de projeto, não medições</strong>,
+porque a corrente de cada modo ainda não foi caracterizada em bancada. Para uma
+corrente de regime estimada em 250 mA no ramo do motor e queda de 1,0 V, a
+dissipação é de 0,25 W. O encapsulamento TO-220 sem dissipador apresenta
+resistência térmica junção-ambiente da ordem de 62 °C/W, o que corresponde a uma
+elevação estimada de cerca de 16 °C sobre a temperatura ambiente. Mesmo na
+condição de rotor bloqueado, com corrente hipotética de 0,9 A, a dissipação
+instantânea de 0,9 W permanece dentro do limite prático de 1 W por transistor
+sem dissipador adotado como regra de projeto. Acima desse limite torna-se
+necessário acrescentar aleta ao TO-220.</p>
 
 <h2>Estado de repouso e comportamento na partida</h2>
 
 <p>O firmware da unidade receptora leva os dois pinos de saída a nível baixo
 explicitamente, como primeira ação da rotina de inicialização, antes de
-qualquer outra configuração — inclusive antes de o rádio ou a criptografia
+qualquer outra configuração, inclusive antes de o rádio ou a criptografia
 serem inicializados:</p>
 
 <figure class="quadro">
@@ -761,71 +1084,522 @@ for (uint8_t i = 0; i &lt; NUM_CANAIS; i++) {
 
 <p>Isso fecha a lacuna entre dois estados que, de outra forma, seriam
 distintos: antes de <code>pinMode</code> ser chamado, o pino está em alta
-impedância, e é a própria polarização interna do TIP122 — os resistores de
-base a emissor descritos na subseção anterior — que mantém o transistor
+impedância, e é a própria polarização interna do TIP122, os resistores de
+base a emissor descritos anteriormente, que mantém o transistor
 cortado nessa janela; a partir de <code>pinMode</code>, o firmware assume o
 controle explícito e força o mesmo resultado por construção. Não existe,
 portanto, instante entre a energização e a decisão de estado do primeiro
 pacote recebido em que a saída fique indefinida: o brinquedo permanece
 desligado por padrão até que um quadro válido determine o contrário. O estado
 lógico associado a cada canal (<code>estadoAtual</code>, em
-<code>CanalBotao</code>) segue a mesma convenção — inicializado em zero por
-<code>canalIniciar</code> — de modo que o estado padrão da unidade emissora
+<code>CanalBotao</code>) segue a mesma convenção: inicializado em zero por
+<code>canalIniciar</code>, de modo que o estado padrão da unidade emissora
 também corresponde a "desligado".</p>
+
+<p>Essa propriedade tem relevância de segurança em um brinquedo destinado a uso
+por terceiros: uma falha de alimentação, uma reinicialização por subtensão ou
+uma perda de enlace de rádio resultam sempre em brinquedo desligado, nunca em
+motor acionado sem comando.</p>
 
 <h2>Referência de terra e escolha dos pinos</h2>
 
 <p>Por se tratar de chaveamento de lado baixo, o emissor de cada transistor é
 ligado ao terra, e é indispensável que esse terra seja comum ao da fonte que
-alimenta o brinquedo. Sem essa ligação não existe caminho de retorno para a
-corrente de coletor, e o circuito simplesmente não conduz. Quando o brinquedo
-possui fonte própria — pilhas, por exemplo —, basta unir o terminal negativo
-dessa fonte ao pino GND da placa receptora.</p>
+alimenta a carga. Sem essa ligação não existe caminho de retorno para a corrente
+de coletor, e o circuito simplesmente não conduz. A exigência vale igualmente
+para o comando: a tensão base-emissor que aciona o transistor é medida em
+relação ao emissor, de modo que sem terra comum entre a placa e os transistores a
+corrente de base não teria por onde retornar.</p>
 
-<p>Os pinos GPIO6 e GPIO7 são de propósito geral no ESP32-C3. Cabe destacar que
-a numeração <em>não</em> é intercambiável entre as famílias: no ESP32 clássico,
-essa mesma faixa é reservada à memória <em>flash</em> SPI e não pode ser
-utilizada. É por essa razão que os pinos de entrada e de saída são selecionados
-em tempo de compilação, conforme descrito na seção de compilação e
-gravação.</p>
+<p>Na topologia atual essa exigência é satisfeita por construção, e não por uma
+ligação adicional: a unidade receptora e as cargas do brinquedo compartilham o
+mesmo trilho de alimentação, derivado de uma única célula, portanto também um
+único terra. A distribuição desse terra deve seguir topologia em estrela,
+conforme detalhado na seção de alimentação, para que a corrente de retorno do
+motor não module a referência do microcontrolador.</p>
+
+<p>Cabe destacar que essa interligação é necessária apenas dentro da unidade
+receptora. A unidade emissora tem terra próprio e inteiramente isolado: as duas
+unidades não compartilham nenhum condutor, e todo o acoplamento entre elas se dá
+por radiofrequência. Não há, portanto, laço de terra entre emissora e
+receptora.</p>
+
+<p>Os pinos GPIO6 e GPIO7 são de propósito geral no ESP32-C3, não pertencem ao
+conjunto de pinos de configuração de inicialização e estão disponíveis no
+conector da placa Super Mini. Cabe destacar que a numeração <em>não</em> é
+intercambiável entre as famílias: no ESP32 clássico, essa mesma faixa é reservada
+à memória <em>flash</em> SPI e não pode ser utilizada. É por essa razão que os
+pinos de entrada e de saída são selecionados em tempo de compilação, conforme
+descrito na seção de compilação e gravação.</p>
+
+<figure class="quadro">
+  <p class="legenda">Ligação entre a unidade receptora e os transistores de
+    saída</p>
+  <table>
+    <tr><th>De</th><th>Para</th><th>Observação</th></tr>
+    <tr><td>GPIO6 da placa</td><td>Terminal do R<sub>B1</sub> (330 Ω)</td><td>Comando do modo 1</td></tr>
+    <tr><td>Outro terminal do R<sub>B1</sub></td><td>Base de Q1</td><td>Perna 1 do TO-220</td></tr>
+    <tr><td>GPIO7 da placa</td><td>Terminal do R<sub>B2</sub> (330 Ω)</td><td>Comando do modo 2</td></tr>
+    <tr><td>Outro terminal do R<sub>B2</sub></td><td>Base de Q2</td><td>Perna 1 do TO-220</td></tr>
+    <tr><td>Coletor de Q1</td><td>Retorno da linha de LEDs</td><td>Perna 2, ligada também à aba metálica</td></tr>
+    <tr><td>Coletor de Q2</td><td>Retorno do motor N20, e anodo de D1</td><td>Perna 2, ligada também à aba metálica</td></tr>
+    <tr><td>Emissores de Q1 e Q2</td><td>Barramento de terra</td><td>Perna 3. Obrigatoriamente o mesmo terra do pino GND da placa</td></tr>
+    <tr><td>Catodo de D1</td><td>Trilho de +5,5 V</td><td>Faixa impressa no corpo do diodo</td></tr>
+  </table>
+  <p class="nota">A aba metálica do encapsulamento TO-220 é eletricamente ligada
+  ao coletor. Q1 e Q2 não podem, portanto, ser fixados ao mesmo suporte metálico
+  sem isolamento, sob pena de unir os dois coletores.</p>
+  <p class="fonte">Fonte: elaborado pelo autor (2026).</p>
+</figure>
 
 <h1>Alimentação</h1>
 
-<p>O sistema possui dois domínios de alimentação distintos, que compartilham
-apenas a referência de terra.</p>
+<p>Esta seção descreve de onde vem a energia do sistema. Ela foi integralmente
+reescrita em relação à versão anterior deste relatório, que descrevia uma
+topologia de baterias primárias descartáveis, substituída em agosto de 2026. A
+versão anterior permanece arquivada para comparação, e o histórico da decisão
+está registrado no documento de decisões do projeto.</p>
 
-<p>O domínio lógico alimenta as duas placas, cada uma por sua própria porta USB,
-em 5 V, com o regulador embarcado fornecendo os 3,3 V usados pelo SoC e
-disponibilizados no pino 3V3. O consumo é dominado pelo rádio: a transmissão em
-ESP-NOW produz picos de corrente da ordem de centenas de miliampères, com
-duração de poucos milissegundos. Os circuitos de comando aqui descritos são
-desprezíveis diante disso: o circuito de entrada responde por cerca de 0,15 mA,
-por empregar exclusivamente os <em>pull-up</em> internos, e as duas bases dos
-transistores somam 7,8 mA com ambos os modos acionados.</p>
+<h2>Da topologia anterior à atual</h2>
 
-<p>O domínio de potência alimenta as cargas do brinquedo através do coletor dos
-transistores, em <span class="lacuna">[V<sub>CC</sub> ainda não medido]</span>. Esse
-domínio não passa pelo regulador da placa nem pela porta USB, e sua corrente é
-determinada exclusivamente pela carga.</p>
+<p>A versão anterior empregava três fontes independentes: três pilhas alcalinas
+AA em série alimentavam o brinquedo em 4,5 V, e cada uma das duas placas era
+alimentada por bateria alcalina A23 de 12 V seguida de regulador linear L7805CV.
+Essa configuração foi documentada e depois abandonada, por três limitações que
+convém registrar porque justificam a mudança:</p>
 
-<p class="nota">Advertência de projeto: a corrente do brinquedo não deve ser
-extraída do pino 3V3 nem do pino 5V da placa receptora. O regulador embarcado
-nas placas de desenvolvimento é dimensionado para o próprio SoC, com margem
-modesta, e a alimentação da carga por essa via provocaria queda de tensão e
-reinicializações durante os picos de transmissão do rádio. É precisamente para
-evitar essa condição que o estágio de potência é isolado em domínio próprio.</p>
+<ol>
+  <li><strong>Capacidade insuficiente.</strong> A bateria A23 é um empilhamento
+  de oito células alcalinas miniatura, com capacidade nominal da ordem de 55 mAh
+  e corrente de descarga recomendada de poucos miliampères. O consumo real do
+  circuito, dominado pelo rádio, é de aproximadamente 85 mA. Como a capacidade
+  entregue por uma célula alcalina cai acentuadamente quando a corrente excede em
+  ordens de grandeza o valor de especificação, a energia efetivamente disponível
+  ficava em torno de 15 mAh, correspondendo a cerca de dez minutos de
+  autonomia.</li>
+  <li><strong>Queda de tensão sob pico.</strong> A resistência interna da A23 é
+  elevada e cresce ao longo da descarga. Os picos de corrente da transmissão de
+  rádio produziam queda momentânea de vários volts nos terminais, levando a
+  entrada do regulador abaixo do mínimo necessário e reinicializando o
+  microcontrolador por subtensão.</li>
+  <li><strong>Ausência de recarga.</strong> Baterias primárias exigem
+  substituição, o que é inconveniente em um brinquedo lacrado.</li>
+</ol>
 
-<p class="nota">Observação: caso se opte por acrescentar resistores de
-<em>pull-up</em> externos, eles devem ser ligados ao pino 3V3 da placa, nunca ao
-pino VIN ou a 5 V. As entradas do ESP32 não são tolerantes a 5 V, e a ligação
-incorreta submeteria o pino a sobretensão permanente sempre que o botão
-estivesse solto.</p>
+<p>A topologia atual substitui as três fontes por uma única célula de lítio
+recarregável, com carga por conector USB-C e elevação de tensão por conversor
+comutado, alimentando um trilho único de 5,5 V do qual derivam tanto a
+eletrônica de controle quanto as cargas do brinquedo.</p>
+
+<figure class="figura">
+  <p class="legenda">Cadeia de alimentação da unidade receptora</p>
+  <div class="desenho">
+    <svg viewBox="0 0 940 540" role="img"
+         aria-label="Cadeia de alimentação da unidade receptora: conector USB-C alimenta o módulo carregador TP4056 com proteção, ao qual se liga a célula de lítio 14500. A saída protegida passa pela chave geral S1 e alimenta o conversor elevador MT3608 ajustado para 5,5 volts, com capacitor de 100 microfarads na entrada e 220 microfarads na saída. O trilho de 5,5 volts resultante alimenta o ESP32-C3, a linha de LEDs através de Q1 e o motor N20 através de Q2, e todos os retornos convergem para um único ponto de terra em estrela.">
+      <g fill="none" stroke="#000" stroke-width="2" stroke-linecap="square">
+
+        <!-- entrada USB-C -->
+        <rect x="20" y="64" width="110" height="52" rx="10"/>
+        <line x1="130" y1="90" x2="168" y2="90"/>
+
+        <!-- U1: modulo carregador -->
+        <rect x="182" y="24" width="176" height="132" rx="4"/>
+
+        <!-- BT1: celula de litio, simbolo IEC de elemento unico -->
+        <line x1="265" y1="156" x2="265" y2="186"/>
+        <line x1="241" y1="186" x2="289" y2="186"/>
+        <line x1="253" y1="198" x2="277" y2="198" stroke-width="5"/>
+        <line x1="265" y1="198" x2="265" y2="430"/>
+
+        <!-- S1: chave geral -->
+        <line x1="358" y1="90" x2="396" y2="90"/>
+        <circle cx="402" cy="90" r="5"/>
+        <line x1="406" y1="86" x2="438" y2="66"/>
+        <circle cx="444" cy="90" r="5"/>
+        <line x1="450" y1="90" x2="530" y2="90"/>
+
+        <!-- C_in -->
+        <line x1="490" y1="90" x2="490" y2="128"/>
+        <line x1="474" y1="128" x2="506" y2="128"/>
+        <line x1="474" y1="140" x2="506" y2="140"/>
+        <line x1="490" y1="140" x2="490" y2="168"/>
+        <line x1="466" y1="168" x2="514" y2="168"/>
+        <line x1="474" y1="177" x2="506" y2="177"/>
+        <line x1="482" y1="186" x2="498" y2="186"/>
+
+        <!-- U2: conversor elevador -->
+        <rect x="530" y="50" width="170" height="80" rx="4"/>
+        <line x1="700" y1="90" x2="830" y2="90"/>
+
+        <!-- C_out -->
+        <line x1="760" y1="90" x2="760" y2="128"/>
+        <line x1="744" y1="128" x2="776" y2="128"/>
+        <line x1="744" y1="140" x2="776" y2="140"/>
+        <line x1="760" y1="140" x2="760" y2="168"/>
+        <line x1="736" y1="168" x2="784" y2="168"/>
+        <line x1="744" y1="177" x2="776" y2="177"/>
+        <line x1="752" y1="186" x2="768" y2="186"/>
+
+        <!-- trilho unico de 5,5 V -->
+        <line x1="830" y1="90" x2="830" y2="250"/>
+        <line x1="830" y1="250" x2="420" y2="250"/>
+
+        <!-- consumidores -->
+        <line x1="450" y1="250" x2="450" y2="310"/>
+        <rect x="390" y="310" width="120" height="52" rx="4"/>
+        <line x1="450" y1="362" x2="450" y2="430"/>
+        <line x1="620" y1="250" x2="620" y2="310"/>
+        <rect x="560" y="310" width="120" height="52" rx="4"/>
+        <line x1="620" y1="362" x2="620" y2="430"/>
+        <line x1="790" y1="250" x2="790" y2="310"/>
+        <rect x="730" y="310" width="120" height="52" rx="4"/>
+        <line x1="790" y1="362" x2="790" y2="430"/>
+
+        <!-- barramento de terra e ponto estrela -->
+        <line x1="230" y1="430" x2="850" y2="430" stroke-width="2.5"/>
+        <line x1="540" y1="430" x2="540" y2="454"/>
+        <line x1="516" y1="454" x2="564" y2="454"/>
+        <line x1="524" y1="464" x2="556" y2="464"/>
+        <line x1="532" y1="474" x2="548" y2="474"/>
+      </g>
+
+      <g fill="#000" stroke="none">
+        <polygon points="182,90 166,83 166,97"/>
+        <circle cx="490" cy="90" r="4"/>
+        <circle cx="760" cy="90" r="4"/>
+        <circle cx="450" cy="250" r="4"/>
+        <circle cx="620" cy="250" r="4"/>
+        <circle cx="790" cy="250" r="4"/>
+        <circle cx="265" cy="430" r="4"/>
+        <circle cx="450" cy="430" r="4"/>
+        <circle cx="620" cy="430" r="4"/>
+        <circle cx="790" cy="430" r="4"/>
+        <circle cx="540" cy="430" r="4"/>
+      </g>
+
+      <g font-family="Times New Roman, serif" fill="#000" stroke="none" text-anchor="middle">
+        <text x="75" y="84" font-size="14">Conector</text>
+        <text x="75" y="104" font-size="14">USB-C</text>
+
+        <text x="270" y="52" font-size="15" font-weight="bold">U1 · TP4056</text>
+        <text x="270" y="74" font-size="13">carregador com proteção</text>
+        <text x="270" y="94" font-size="13">DW01A + FS8205</text>
+        <text x="270" y="116" font-size="13">programado para 0,37 A</text>
+        <text x="270" y="138" font-size="12">saída por OUT+ / OUT−</text>
+
+        <text x="300" y="180" font-size="14" text-anchor="start">BT1 · 14500</text>
+        <text x="300" y="199" font-size="12" text-anchor="start">lítio, 3,0 a 4,2 V</text>
+        <text x="300" y="217" font-size="12" text-anchor="start">≈ 800 mAh</text>
+
+        <text x="423" y="52" font-size="14">S1</text>
+        <text x="423" y="116" font-size="12">chave geral</text>
+
+        <text x="615" y="78" font-size="15" font-weight="bold">U2 · MT3608</text>
+        <text x="615" y="100" font-size="13">conversor elevador</text>
+        <text x="615" y="120" font-size="13">ajustado para 5,5 V</text>
+
+        <text x="460" y="130" font-size="13" text-anchor="end">C</text>
+        <text x="466" y="134" font-size="10" text-anchor="start">in</text>
+        <text x="460" y="150" font-size="12" text-anchor="end">100 µF</text>
+        <text x="730" y="130" font-size="13" text-anchor="end">C</text>
+        <text x="736" y="134" font-size="10" text-anchor="start">out</text>
+        <text x="730" y="150" font-size="12" text-anchor="end">220 µF</text>
+
+        <text x="846" y="86" font-size="14" text-anchor="start">+5,5 V</text>
+        <text x="625" y="240" font-size="12.5">trilho único de 5,5 V</text>
+
+        <text x="450" y="334" font-size="13.5">ESP32-C3</text>
+        <text x="450" y="352" font-size="12">pino 5V</text>
+        <text x="620" y="334" font-size="13.5">Q1 · linha de LEDs</text>
+        <text x="620" y="352" font-size="12">modo 1</text>
+        <text x="790" y="334" font-size="13.5">Q2 · motor N20</text>
+        <text x="790" y="352" font-size="12">modo 2</text>
+
+        <text x="540" y="498" font-size="12.5">Ponto de terra em estrela: todos os retornos convergem para um único ponto.</text>
+        <text x="540" y="518" font-size="12">Símbolos gráficos conforme ABNT NBR IEC 60617.</text>
+      </g>
+    </svg>
+  </div>
+  <p class="fonte">Fonte: elaborado pelo autor (2026).</p>
+</figure>
+
+<h2>Célula e circuito de carga</h2>
+
+<p>A fonte primária é uma célula de lítio recarregável no formato
+<strong>14500</strong>, cuja denominação designa as dimensões: 14 mm de diâmetro
+por 50 mm de comprimento, praticamente as mesmas de uma pilha AA. A coincidência
+é deliberada e permite aproveitar o compartimento de pilhas original do
+brinquedo. A tensão de uma célula de lítio varia de 4,2 V, quando plenamente
+carregada, a aproximadamente 3,0 V no fim da descarga, com patamar nominal em
+3,7 V, e a capacidade típica desse formato é da ordem de 800 mAh.</p>
+
+<p>A célula é gerenciada por um módulo <strong>TP4056</strong>, que executa o
+perfil de carga exigido pela química de lítio: corrente constante até a célula
+atingir 4,2 V, seguida de tensão constante com corrente decrescente até o
+encerramento. Esse perfil não é opcional, e carregar uma célula de lítio fora
+dele é a principal causa de falha térmica desse tipo de bateria.</p>
+
+<p>Especifica-se a variante <strong>com circuito de proteção</strong>,
+identificável pela presença de dois circuitos integrados adicionais, DW01A e
+FS8205, ao lado do TP4056. Essa proteção interrompe a conexão em caso de
+descarga profunda, sobrecarga ou curto-circuito. O módulo apresenta dois pares de
+terminais, e a distinção entre eles é a instrução mais importante da montagem:</p>
+
+<ul>
+  <li><strong>B+ e B−</strong> conectam-se exclusivamente à célula.</li>
+  <li><strong>OUT+ e OUT−</strong> alimentam o restante do circuito. É deste par
+  que a carga deve ser tirada, porque o circuito de proteção atua entre a célula
+  e esses terminais. Alimentar o circuito a partir de B+ e B− contorna a proteção
+  e anula sua função.</li>
+</ul>
+
+<p>O resistor de programação de corrente do módulo, designado
+R<sub>PROG</sub>, deve ser substituído. Os módulos são fornecidos com 1,2 kΩ,
+marcado <code>122</code>, que programa 1 A de corrente de carga, valor adequado a
+células de maior capacidade. Para uma célula de 800 mAh, a prática recomendada é
+carregar a 0,5 C, ou seja, cerca de 0,37 A. A relação é:</p>
+
+<p class="sem-recuo" style="text-align:center">
+<em>R</em><sub>PROG</sub> = 1100 / <em>I</em><sub>carga</sub>
+= 1100 / 0,37 ≈ 3 kΩ
+</p>
+
+<p>Substitui-se, portanto, o resistor de fábrica por um de 3 kΩ, marcado
+<code>302</code>, em encapsulamento 0805.</p>
+
+<h2>Chave geral</h2>
+
+<p>Entre o terminal OUT+ do módulo de carga e a entrada do conversor há uma chave
+geral, que isola completamente a célula do restante do circuito. Ela cumpre duas
+funções: interromper o consumo de repouso quando o brinquedo não está em uso, e
+permitir a gravação de firmware pelo conector USB da placa sem que haja duas
+fontes ligadas simultaneamente.</p>
+
+<p>Essa chave não representa componente novo. A chave mecânica de quatro
+estágios original do brinquedo, que deixou de exercer a seleção de modos por
+essa função ter passado ao controle remoto, é reaproveitada: a primeira posição,
+que não conecta nada, passa a ser a posição desligada, e as demais posições são
+unidas entre si para formar a posição ligada. O aproveitamento preserva a
+aparência externa e o gesto de uso do brinquedo.</p>
+
+<h2>Conversor elevador</h2>
+
+<p>A tensão da célula, de 3,0 a 4,2 V, é inferior à necessária, e é elevada a
+5,5 V por um módulo <strong>MT3608</strong>, conversor comutado do tipo elevador
+com chave interna especificada para 4 A. O módulo é ajustável por
+potenciômetro, e o ajuste deve ser feito com multímetro <em>antes</em> de
+qualquer carga ser conectada, porque a tensão de fábrica é arbitrária e o
+regulador embarcado na placa ESP32-C3 tem 6,0 V de máximo absoluto.</p>
+
+<h3>Por que elevar a tensão, e não alimentar a placa diretamente</h3>
+
+<p>A pergunta é legítima, porque a placa ESP32-C3 aceitaria os 3,7 V da célula
+diretamente em seu regulador interno, dispensando o conversor. Essa alternativa
+foi considerada e rejeitada, e o raciocínio merece registro porque a primeira
+análise chegou à conclusão oposta.</p>
+
+<p>O argumento inicial contra o conversor era o rendimento: todo conversor
+comutado dissipa uma fração da energia, e uma estimativa preliminar indicava
+perda de 39 % de autonomia. Essa estimativa estava incorreta porque supunha que o
+regulador embarcado na placa continuaria regulando até o fim da descarga da
+célula. Ele não continua.</p>
+
+<p>A razão é uma propriedade dos reguladores lineares de baixa queda: a
+<em>queda mínima</em>, isto é, a diferença mínima entre entrada e saída
+necessária para que a regulação se mantenha, não é constante. Ela cresce com a
+corrente entregue. No ME6211, típico dessas placas, a queda passa de
+aproximadamente 120 mV a 100 mA para cerca de 420 mV a 350 mA. E 350 mA é
+justamente o pico de corrente que o rádio exige ao transmitir. Nesse instante o
+regulador passa a exigir cerca de 3,72 V em sua entrada, valor que corresponde ao
+patamar nominal da célula, e não ao fim de sua descarga.</p>
+
+<p>A consequência prática é que, sem conversor, o sistema aproveita apenas a
+parte superior da curva de descarga: a partir de determinado ponto, cada
+transmissão de rádio provoca reinicialização por subtensão, ainda que a célula
+conserve carga. Refeita a comparação com esse efeito incluído:</p>
+
+<figure class="tabela">
+  <p class="legenda">Comparação entre alimentar a placa diretamente pela célula
+    e alimentá-la pelo conversor elevador</p>
+  <table>
+    <tr>
+      <th>Arranjo</th>
+      <th class="num">Capacidade aproveitável</th>
+      <th class="num">Autonomia estimada</th>
+      <th>Limitação</th>
+    </tr>
+    <tr>
+      <td>Célula diretamente no pino 5V</td>
+      <td class="num">≈ 545 mAh de 800</td>
+      <td class="num">≈ 6,5 h</td>
+      <td>Reinicializa nos picos de transmissão antes de esgotar a célula</td>
+    </tr>
+    <tr>
+      <td>Célula com conversor elevador em 5,5 V</td>
+      <td class="num">800 mAh</td>
+      <td class="num">≈ 5,8 h</td>
+      <td>Perda de conversão de aproximadamente 15 %</td>
+    </tr>
+  </table>
+  <p class="nota">Autonomia estimada com rádio permanentemente ativo e uso
+  intermitente do motor, que corresponde ao perfil de demonstração. Valores de
+  projeto, não medidos.</p>
+  <p class="fonte">Fonte: elaborado pelo autor (2026).</p>
+</figure>
+
+<p>O conversor custa, portanto, cerca de 11 % de autonomia, e não 39 %, e em
+troca torna acessível a totalidade da carga da célula e elimina a
+reinicialização durante a transmissão. Acrescenta-se a vantagem construtiva de
+haver um único trilho e um único terra, o que simplifica a montagem interna.</p>
+
+<h3>Verificação de corrente</h3>
+
+<p>Um conversor elevador não cria energia: ele reflete a potência de saída para a
+entrada, acrescida das perdas. A corrente exigida da célula é, portanto, maior
+que a corrente entregue à carga, na proporção das tensões e do rendimento:</p>
+
+<p class="sem-recuo" style="text-align:center">
+<em>I</em><sub>entrada</sub> =
+(<em>V</em><sub>saída</sub> × <em>I</em><sub>saída</sub>) /
+(<em>V</em><sub>entrada</sub> × <em>η</em>)
+</p>
+
+<p>Adotando rendimento de 85 %, célula em seu patamar de 3,7 V e trilho de
+5,5 V, os casos relevantes são:</p>
+
+<figure class="tabela">
+  <p class="legenda">Corrente exigida da célula nos três regimes de operação</p>
+  <table>
+    <tr>
+      <th>Regime</th>
+      <th class="num">Corrente no trilho</th>
+      <th class="num">Corrente na célula</th>
+    </tr>
+    <tr>
+      <td>Repouso, apenas rádio ativo</td>
+      <td class="num">80 mA</td>
+      <td class="num">≈ 0,14 A</td>
+    </tr>
+    <tr>
+      <td>Motor e LEDs em regime, com rádio ativo</td>
+      <td class="num">≈ 0,33 A</td>
+      <td class="num">≈ 0,58 A</td>
+    </tr>
+    <tr>
+      <td>Rotor bloqueado, pior caso estimado</td>
+      <td class="num">≈ 1,08 A</td>
+      <td class="num">≈ 1,9 A</td>
+    </tr>
+  </table>
+  <p class="nota">Valores estimados de projeto. O pior caso permanece abaixo do
+  limite de 4 A da chave interna do MT3608, com margem superior a duas vezes.</p>
+  <p class="fonte">Fonte: elaborado pelo autor (2026).</p>
+</figure>
+
+<p>Registra-se que essa verificação motivou a revisão de uma decisão anterior do
+projeto, que vedava o emprego de conversores comutados. Aquela decisão fora
+fundamentada em uma corrente de partida de 1,5 A, valor provisório que nunca foi
+medido e que a identificação do motor N20 mostrou ser cerca de uma ordem de
+grandeza superior à real.</p>
+
+<h2>Capacitores do trilho</h2>
+
+<p>A topologia atual exige dois capacitores que a anterior não previa, e nenhum
+deles é dispensável.</p>
+
+<p><strong>C<sub>out</sub>, de 220 µF, na saída do conversor.</strong> Quando o
+motor é desligado, o conversor leva alguns ciclos de comutação para perceber que
+a carga desapareceu, e nesse intervalo a tensão de saída ultrapassa o valor
+ajustado. Esse fenômeno, chamado sobretensão por rejeição de carga, é inerente à
+malha de realimentação de qualquer conversor comutado. O trilho está em 5,5 V e o
+regulador embarcado na placa ESP32-C3 tem 6,0 V de máximo absoluto: a margem
+disponível é de meio volt. O capacitor absorve o excesso de energia e mantém a
+excursão dentro dessa margem. Sem ele, o componente sob risco não é o motor, e
+sim a placa.</p>
+
+<p><strong>C<sub>in</sub>, de 100 µF, na entrada do conversor.</strong> Um
+conversor elevador extrai corrente da fonte em pulsos, na frequência de
+comutação. Sem reservatório local, esses pulsos atravessam a resistência interna
+da célula e dos condutores e se manifestam como ondulação de tensão em todo o
+circuito.</p>
+
+<h2>Distribuição de terra</h2>
+
+<p>A corrente de retorno do motor é a maior do circuito e a mais irregular. Se
+ela percorrer o mesmo trecho de condutor que o retorno da placa, a queda de
+tensão que produz sobre a resistência desse trecho aparece como variação da
+referência de terra do microcontrolador. O efeito é análogo ao de um circuito
+hidráulico em que uma derivação de alta vazão faz oscilar a pressão de uma
+derivação sensível instalada a jusante.</p>
+
+<p>A mitigação é a distribuição em <strong>estrela</strong>: define-se um único
+ponto de terra, no terminal OUT− do módulo de carga, e cada retorno é levado
+individualmente até ele, em vez de os retornos serem encadeados uns aos outros.
+Assim, a corrente do motor não atravessa nenhum trecho compartilhado com o
+retorno da placa.</p>
+
+<h2>Consumo do domínio lógico</h2>
+
+<p>O consumo da eletrônica de controle é dominado pelo rádio: a transmissão em
+ESP-NOW produz picos de corrente da ordem de centenas de miliampères, com duração
+de poucos milissegundos, sobre um consumo de base de algumas dezenas de
+miliampères enquanto o rádio permanece ativo. Os circuitos de comando descritos
+neste documento são desprezíveis diante disso: o circuito de entrada responde por
+cerca de 0,15 mA, por empregar exclusivamente os <em>pull-up</em> internos, e as
+duas bases dos transistores somam 7,8 mA com ambos os modos acionados.</p>
+
+<p>Não há gerenciamento de energia por suspensão profunda
+(<em>deep sleep</em>) em nenhuma das unidades: o rádio permanece ativo de forma
+contínua para que a latência de acionamento seja mínima. Essa é uma escolha
+consciente, que troca autonomia por resposta imediata, e é o principal caminho de
+evolução caso a autonomia venha a se mostrar insuficiente.</p>
+
+<h2>Unidade emissora</h2>
+
+<p>A migração descrita nesta seção alcança apenas a unidade receptora, que é a
+que fica embarcada no brinquedo. A unidade emissora, contida na caixa do botão,
+permanece alimentada por bateria A23 de 12 V seguida de regulador linear
+L7805CV, com as limitações de autonomia já descritas. A assimetria é deliberada:
+a receptora foi priorizada por estar lacrada dentro do brinquedo, onde a troca de
+baterias é inconveniente, enquanto a emissora é externa e acessível. A migração
+da emissora está prevista e registrada como evolução, sem data.</p>
+
+<p>Cabe reafirmar que as duas unidades não compartilham nenhum condutor. Cada
+uma tem alimentação e terra próprios, e todo o acoplamento entre elas se dá por
+radiofrequência.</p>
+
+<h2>Advertências de segurança relativas à célula de lítio</h2>
+
+<p>A adoção de bateria de lítio introduz riscos que baterias alcalinas não
+apresentam, e que devem constar do documento por se tratar de dispositivo
+destinado a manuseio por terceiros:</p>
+
+<ul>
+  <li>A célula deve ser carregada exclusivamente pelo módulo TP4056, e nunca
+  ligada diretamente a uma fonte de tensão fixa.</li>
+  <li>O circuito de proteção deve estar presente e a carga deve ser tirada dos
+  terminais OUT, conforme já detalhado.</li>
+  <li>A polaridade da célula não pode ser invertida na montagem. Ao contrário de
+  uma pilha alcalina, a inversão de uma célula de lítio provoca corrente elevada
+  e aquecimento imediato.</li>
+  <li>O compartimento deve impedir que a célula seja retirada por quem usa o
+  brinquedo, o que se obtém mantendo a tampa original fixada com parafuso.</li>
+  <li>Danos mecânicos à célula, como perfuração ou deformação, exigem
+  substituição imediata e descarte em ponto de coleta apropriado.</li>
+</ul>
 
 <h1>Organização do código-fonte</h1>
 
+<p class="nota"><strong>Em termos simples.</strong> O programa é dividido em
+duas camadas. Uma contém as decisões, o que deve acontecer diante de cada
+situação, e é escrita sem qualquer referência ao equipamento físico. A outra faz
+a ponte com os circuitos, lendo pinos e medindo tempo. A separação existe para
+que a primeira camada possa ser testada em um computador comum, sem placa
+conectada, o que torna a verificação rápida e repetível.</p>
+
 <p>O projeto separa deliberadamente a lógica de decisão das chamadas de
 plataforma: nenhuma função em <code>lib/</code> chama <code>digitalRead</code>,
-<code>millis</code> ou qualquer outra API do Arduino diretamente — leitura e
+<code>millis</code> ou qualquer outra API do Arduino diretamente, leitura e
 tempo entram sempre como parâmetro. Essa separação entre lógica portável e
 camada de acesso a hardware segue a prática consolidada por Barr (1999) para
 sistemas embarcados em C/C++, na qual isolar o comportamento testável da
@@ -859,6 +1633,13 @@ fonte de verdade, e uma correção aplicada nele alcança as duas unidades sem
 intervenção manual.</p>
 
 <h1>Compilação e gravação</h1>
+
+<p class="nota"><strong>Em termos simples.</strong> As duas unidades usam
+modelos diferentes de microcontrolador, e o mesmo texto de programa precisa ser
+traduzido de forma distinta para cada um, inclusive quanto a quais pinos usar.
+Esta seção descreve como esse processo foi automatizado, de modo que reconstruir
+e regravar as duas placas seja um único comando e não dependa de o operador
+lembrar de ajustes manuais.</p>
 
 <p>As duas unidades empregam famílias distintas de microcontrolador, o que
 impede o uso de um comando único de compilação. O <em>Makefile</em>
@@ -914,13 +1695,25 @@ GPIO6 a GPIO11 é reservada à memória <em>flash</em>.</p>
 
 <h1>Arquitetura de tempo real</h1>
 
+<p class="nota"><strong>Em termos simples.</strong> O microcontrolador tem
+várias obrigações simultâneas: vigiar os botões, transmitir pelo rádio e relatar
+diagnósticos. Se elas fossem executadas em sequência fixa, uma transmissão
+demorada faria o sistema deixar de vigiar os botões justamente enquanto alguém os
+pressiona. A solução é dividir o programa em tarefas independentes e atribuir a
+cada uma uma prioridade, de modo que a mais urgente interrompa as demais quando
+precisar. É o mesmo princípio da triagem: quem tem urgência maior passa
+primeiro.</p>
+
 <p>Ambas as unidades empregam tarefas do FreeRTOS em vez de um laço único. A
 motivação é o isolamento temporal: a amostragem dos botões precisa ocorrer em
 período regular, e não pode ser suspensa enquanto a rajada de transmissão é
 emitida. As prioridades atribuídas a cada tarefa seguem o princípio geral do
 escalonamento por prioridade fixa: a tarefa cuja urgência de execução é maior
 recebe a prioridade mais alta, e as demais são preteridas quando há disputa
-pela CPU (Liu; Layland, 1973; Oliveira; Lima, 2023).</p>
+pela CPU (Liu; Layland, 1973; Oliveira; Lima, 2023). A semântica das
+primitivas empregadas, criação de tarefas, filas com bloqueio por tempo
+limitado e níveis de prioridade, segue a definida no manual de referência do
+núcleo (Real Time Engineers Ltd, 2017).</p>
 
 <h2>Unidade emissora</h2>
 
@@ -988,7 +1781,7 @@ fila e emite cada evento três vezes; o atraso entre quadros da rajada cede a
 CPU, de modo que a amostragem dos botões continua ocorrendo durante a
 transmissão. A tarefa de diagnóstico, de prioridade 1, é a única que pode ser
 preterida indefinidamente sem prejuízo funcional. A atribuição decrescente de
-prioridade — amostragem acima de envio, envio acima de diagnóstico — reflete
+prioridade, amostragem acima de envio, envio acima de diagnóstico, reflete
 exatamente essa ordem de urgência: perder uma amostra de botão é
 irrecuperável, perder um ciclo de relato de diagnóstico não é.</p>
 
@@ -1007,15 +1800,22 @@ a copiar o quadro recebido para uma fila de 16 posições
 acionamento efetivo dos pinos ocorrem na tarefa <code>tarefaModos</code>,
 de prioridade 3, fora do caminho crítico do rádio. Uma segunda tarefa, de
 prioridade 1, relata a cada 10 s, pela saída serial, o número de quadros
-descartados e o número de posições livres na fila — o mesmo mecanismo de
+descartados e o número de posições livres na fila, o mesmo mecanismo de
 diagnóstico empregado na unidade emissora.</p>
 
 <h1>Tratamento de acionamento mecânico</h1>
 
+<p class="nota"><strong>Em termos simples.</strong> As lâminas metálicas
+internas de um botão não se encostam de uma vez: elas quicam por alguns
+milissegundos antes de estabilizar. O microcontrolador é rápido o bastante para
+enxergar cada quique, e sem tratamento registraria vários acionamentos onde
+houve um só. A correção consiste em exigir que a leitura permaneça estável por um
+intervalo mínimo antes de ser aceita como mudança real.</p>
+
 <p>Contatos mecânicos produzem múltiplas transições espúrias durante alguns
 milissegundos após o fechamento. O tratamento é feito por uma máquina de estados
 que exige estabilidade da leitura por um intervalo mínimo, fixado em 40 ms,
-antes de reconhecer uma borda — abordagem de filtragem digital por tempo de
+antes de reconhecer uma borda, abordagem de filtragem digital por tempo de
 estabilização consolidada na prática de sistemas embarcados (Ganssle,
 2026).</p>
 
@@ -1137,7 +1937,7 @@ estabilização consolidada na prática de sistemas embarcados (Ganssle,
 <p>A função não invoca <code>digitalRead</code> nem <code>millis</code>: a
 leitura e o instante entram como parâmetros. Essa decisão é o que torna a
 máquina de estados verificável na máquina de desenvolvimento, com o tempo
-controlado pelo teste, sem depender de hardware nem de espera real — a mesma
+controlado pelo teste, sem depender de hardware nem de espera real, a mesma
 separação entre lógica e plataforma discutida na seção de organização do
 código-fonte.</p>
 
@@ -1149,6 +1949,14 @@ desliga.</p>
 
 <h1>Protocolo de aplicação</h1>
 
+<p class="nota"><strong>Em termos simples.</strong> Duas máquinas que trocam
+mensagens precisam de um acordo prévio sobre o formato e o significado do que é
+enviado: quantos campos a mensagem tem, o que cada um quer dizer e o que fazer
+quando algo chega repetido ou fora de ordem. Esse acordo é o protocolo. Esta
+seção descreve o que cada mensagem carrega e por que foi decidido transmitir o
+estado desejado do brinquedo, e não a instrução para inverter o estado
+atual.</p>
+
 <p>O ESP-NOW é um protocolo proprietário da Espressif que opera na faixa de
 2,4 GHz reaproveitando a camada física do padrão IEEE 802.11, mas dispensando
 por completo a pilha de rede construída sobre ela. Não há associação a ponto de
@@ -1156,13 +1964,12 @@ acesso, não há autenticação WPA, não há atribuição de endereço IP e nã
 handshake de transporte: os dados trafegam em quadros de gerenciamento do tipo
 <em>vendor-specific action frame</em>, que os rádios trocam diretamente entre
 si. Essa escolha é o que torna o protocolo adequado ao projeto: um sistema
-convencional sobre Wi-Fi exigiria infraestrutura intermediária — um roteador
-—, e o tempo entre o acionamento do botão e a resposta do brinquedo incluiria
+convencional sobre Wi-Fi exigiria infraestrutura intermediária: um roteador, e o tempo entre o acionamento do botão e a resposta do brinquedo incluiria
 associação, negociação e roteamento, tipicamente dezenas a centenas de
 milissegundos. No ESP-NOW, o quadro parte do rádio emissor e chega ao rádio
-receptor em ordem de poucos milissegundos — Urazayev <em>et al.</em> (2023)
+receptor em ordem de poucos milissegundos, Urazayev <em>et al.</em> (2023)
 relatam, para condições internas comparáveis, ganho de alcance e de eficiência
-energética frente ao Wi-Fi convencional —, e as duas placas voltam a se
+energética frente ao Wi-Fi convencional, e as duas placas voltam a se
 comunicar imediatamente após uma reinicialização, porque não há estado de
 sessão a reconstruir.</p>
 
@@ -1270,8 +2077,8 @@ o valor correto, e o sistema se recupera sozinho.</p>
 <p>O campo <code>bootId</code> é sorteado a cada partida da unidade emissora,
 a partir do gerador de números aleatórios por hardware (<code>esp_random()</code>),
 após o rádio ser ligado. Sem ele, a reinicialização do emissor faria a
-sequência retornar ao início, e a unidade receptora — que descarta números de
-sequência não superiores ao último observado — rejeitaria os primeiros
+sequência retornar ao início, e a unidade receptora, que descarta números de
+sequência não superiores ao último observado, rejeitaria os primeiros
 acionamentos após o reinício. Ao detectar identificador diferente do
 conhecido, a receptora descarta o histórico e volta a aceitar a numeração
 desde o começo.</p>
@@ -1322,16 +2129,24 @@ contextos de rede, pela RFC 1982 (Elz; Bush, 1996).</p>
 
 <h1>Segurança</h1>
 
+<p class="nota"><strong>Em termos simples.</strong> Uma transmissão de rádio é
+audível por qualquer aparelho ao alcance. Duas garantias são necessárias: que
+ninguém consiga ler o conteúdo das mensagens, obtida por cifragem, e que o
+receptor não obedeça a mensagens de origem diferente do seu emissor, obtida por
+verificação do remetente. Esta seção descreve os dois mecanismos e delimita
+explicitamente o que eles não protegem, o que importa porque nenhuma proteção é
+absoluta e omitir seus limites seria enganoso.</p>
+
 <p>O tráfego entre as duas unidades é cifrado pelo mecanismo nativo do
 ESP-NOW, aplicado pelo próprio rádio antes da transmissão e desfeito na
-recepção, de maneira transparente para a aplicação — a criptografia não é
+recepção, de maneira transparente para a aplicação, a criptografia não é
 habilitada por padrão e precisa ser configurada explicitamente pelo
 firmware, conforme detalhado nesta seção.</p>
 
 <h2>Modo CCM: confidencialidade e autenticidade</h2>
 
 <p>O algoritmo é o AES de 128 bits operando em modo CCM
-(<em>Counter with CBC-MAC</em>) — o mesmo modo empregado pelo CCMP do WPA2,
+(<em>Counter with CBC-MAC</em>), o mesmo modo empregado pelo CCMP do WPA2,
 especificado formalmente pela RFC 3610 (Whiting; Housley; Ferguson, 2003) e
 pela publicação especial NIST SP 800-38C (Dworkin, 2004). O modo CCM combina
 duas construções distintas sobre a mesma cifra de bloco. A confidencialidade
@@ -1356,7 +2171,7 @@ exclusivamente para cifrar a chave de sessão durante o estabelecimento do
 par. A LMK (<em>local master key</em>) é a chave associada a um par
 específico e é a que efetivamente cifra o tráfego daquele enlace. Ambas as
 placas precisam do mesmo conjunto de 32 bytes, sem o qual não há comunicação
-cifrada possível — o cadastro recíproco é obrigatório: sem ele, a unidade
+cifrada possível, o cadastro recíproco é obrigatório: sem ele, a unidade
 receptora não dispõe do material necessário para decifrar os quadros, razão
 pela qual ela também precisa conhecer o endereço físico da emissora.</p>
 
@@ -1377,11 +2192,11 @@ listado em <code>.gitignore</code>) e são geradas pelo utilitário
 <code>ferramentas/gerar_chaves.py</code>, que consome a fonte de entropia do
 sistema operacional e escreve um cabeçalho local. Como as duas placas
 precisam do mesmo material de 32 bytes, a regeneração das chaves obriga a
-regravar ambas — o esquema é, por construção, um pareamento 1 : 1 entre uma
+regravar ambas, o esquema é, por construção, um pareamento 1 : 1 entre uma
 emissora e uma receptora específicas, e não escala para topologias com mais
 de duas unidades sem replicar manualmente o mesmo par de chaves em cada nova
-placa. Essa é uma limitação consciente de escopo, tratada na seção de
-limitações e trabalhos futuros: um esquema com mais de duas unidades exigiria
+placa. Essa é uma limitação consciente de escopo: um esquema com mais de
+duas unidades exigiria
 mecanismo de distribuição e, eventualmente, de rotação de chaves, nenhum dos
 quais está implementado nem seria justificável para um sistema de duas
 placas fisicamente emparelhadas na fabricação.</p>
@@ -1403,8 +2218,8 @@ bool chaveEhInsegura(const uint8_t *chave);</pre>
 
 <p>Em qualquer desses casos, o firmware emite advertência destacada na saída
 serial, tanto no emissor quanto no receptor, e o ensaio automatizado trata a
-advertência como falha. A verificação não impede a partida — a chave de
-exemplo ainda cifra o enlace, apenas com material previsível —, mas torna a
+advertência como falha. A verificação não impede a partida, a chave de
+exemplo ainda cifra o enlace, apenas com material previsível, mas torna a
 condição impossível de passar despercebida.</p>
 
 <h2>Filtragem do remetente</h2>
@@ -1418,9 +2233,9 @@ proteção pretendida.</p>
 
 <p>O receptor fecha essa porta comparando o endereço de origem de todo quadro
 recebido com o endereço esperado do emissor, e descartando de imediato o que não
-corresponder. A comparação é feita em tempo constante — acumulando as
+corresponder. A comparação é feita em tempo constante, acumulando as
 diferenças de todos os seis bytes por ou-exclusivo antes de decidir, em vez
-de interromper no primeiro byte divergente —, prática que segue o princípio
+de interromper no primeiro byte divergente, prática que segue o princípio
 descrito por Kocher (1996), segundo o qual a duração de uma comparação que
 interrompe no primeiro byte divergente pode, em princípio, revelar
 informação sobre o valor esperado a um observador que meça o tempo de
@@ -1491,11 +2306,11 @@ resposta.</p>
 
         <text x="185" y="82" font-size="14">Evento de botão</text>
         <text x="185" y="100" font-size="12">borda validada por debounce</text>
-        <text x="185" y="152" font-size="14">Monta a carga útil — 8 bytes</text>
+        <text x="185" y="152" font-size="14">Monta a carga útil: 8 bytes</text>
         <text x="185" y="170" font-size="12">bootId · canal · estado · seq</text>
         <text x="185" y="222" font-size="14">Cifra AES-CCM com a LMK</text>
         <text x="185" y="240" font-size="12">aplicada pelo rádio</text>
-        <text x="185" y="292" font-size="14">Transmite — canal 1</text>
+        <text x="185" y="292" font-size="14">Transmite: canal 1</text>
         <text x="185" y="310" font-size="12">rajada de 3 quadros unicast</text>
 
         <text x="565" y="292" font-size="14">Decifra e autentica</text>
@@ -1526,7 +2341,7 @@ aceitáveis pelo receptor, e o filtro de remetente cobre a lacuna dos quadros
 não cifrados de origem desconhecida. A repetição íntegra de um quadro
 legítimo capturado anteriormente é absorvida pela deduplicação por
 sequência, embora esta tenha sido projetada para a rajada, e não como
-contramedida deliberada de reprodução — distinção relevante à luz de
+contramedida deliberada de reprodução, distinção relevante à luz de
 achados recentes: Nozomi Networks (2024) divulgou uma vulnerabilidade de
 repetição de quadros no próprio ESP-NOW (CVE-2024-42483), decorrente de o
 cache de deduplicação nativo do protocolo não diferenciar tipos de mensagem
@@ -1539,18 +2354,25 @@ adicional sobre o ESP-NOW nessa mesma direção, e são apontados como leitura
 de referência para trabalhos futuros de reforço do enlace.</p>
 
 <p>Por outro lado, as chaves são compiladas no <em>firmware</em> e residem na
-memória <em>flash</em> das placas, sem cifragem — cobrir esse caso exigiria
+memória <em>flash</em> das placas, sem cifragem, cobrir esse caso exigiria
 habilitar a cifragem de <em>flash</em>, o que demandaria migrar a compilação
 para o ESP-IDF puro. Quem obtenha acesso físico a qualquer uma das unidades e
 consiga ler essa memória recupera o material criptográfico integral, e a
 partir daí toda a proteção do enlace se perde. Não há, tampouco, rotação
 automática de chaves: a troca é manual e exige regravar as duas placas. Para o
-escopo do projeto — um brinquedo acionado à distância em ambiente controlado —
+escopo do projeto, um brinquedo acionado à distância em ambiente controlado,
 esse nível de proteção é adequado, e o registro desta limitação tem o propósito
 de evitar que o mecanismo seja transposto, sem exame, para aplicações de
 requisito mais severo.</p>
 
 <h1>Identificação e diagnóstico na inicialização</h1>
+
+<p class="nota"><strong>Em termos simples.</strong> As duas placas executam
+programas diferentes e são fisicamente parecidas, de modo que trocá-las por
+engano é fácil e o sintoma resultante seria confuso. Para evitar isso, cada uma
+anuncia ao ligar quem é, com que parceira está emparelhada e quais pinos usa,
+tornando o erro visível de imediato em vez de manifestar-se como mau
+funcionamento inexplicável.</p>
 
 <p>Cada unidade imprime, ao iniciar, um bloco de identificação contendo o papel
 que desempenha, seu endereço físico e o identificador de inicialização, seguido
@@ -1587,6 +2409,16 @@ efetivamente transmite.</p>
 
 <h1>Verificação</h1>
 
+<p class="nota"><strong>Em termos simples.</strong> Afirmar que um sistema
+funciona exige demonstrá-lo. A verificação aqui se dá em dois níveis. No
+primeiro, a parte do programa que toma decisões é executada em um computador
+comum, alimentada com situações construídas de propósito, inclusive as raras e as
+adversas, e verifica-se se a resposta é a esperada; isso dispensa o equipamento
+físico e permite repetir a checagem a cada alteração. No segundo, o equipamento
+montado é submetido a ensaios de bancada, com medição de rádio, conferência das
+ligações e acionamento manual repetido. Relatam-se abaixo os dois níveis, e
+também o que ainda não foi verificado.</p>
+
 <h2>Testes na máquina de desenvolvimento</h2>
 
 <p>A lógica isolada em <code>lib/</code> é exercitada por uma bateria de
@@ -1605,7 +2437,7 @@ ciclo de compilação e gravação.</p>
     <tr><td><code>test_receptor.cpp</code></td><td class="num">12</td><td>Deduplicação por sequência e <code>bootId</code>, rejeição de canal e tamanho inválidos, reinício de sequência após reboot do emissor, independência entre canais</td></tr>
     <tr><td><code>test_seguranca.cpp</code></td><td class="num">8</td><td>Verificação de remetente em tempo constante, detecção de chave insegura (zerada, 0xFF, chave de exemplo)</td></tr>
     <tr><td><code>test_identidade.cpp</code></td><td class="num">15</td><td>Montagem do banner de identificação, formatação e detecção de endereço MAC (placeholder, zerado, broadcast), limites de buffer</td></tr>
-    <tr><td><code>test_integracao.cpp</code></td><td class="num">5</td><td>Fluxo completo simulado — clique, rajada, dois canais independentes, reinício do emissor — sem envolver rádio nem hardware real</td></tr>
+    <tr><td><code>test_integracao.cpp</code></td><td class="num">5</td><td>Fluxo completo simulado: clique, rajada, dois canais independentes, reinício do emissor, sem envolver rádio nem hardware real</td></tr>
   </table>
   <p class="fonte">Fonte: elaborado pelo autor, a partir dos nomes de teste
     registrados em <code>test/*.cpp</code> (2026).</p>
@@ -1704,7 +2536,7 @@ configuração resultante foi validada em seguida pelo ensaio funcional.</p>
 <h2>Verificação de continuidade dos pinos</h2>
 
 <p>Durante o ensaio funcional, os acionamentos dos botões não produziam qualquer
-efeito, e os contadores de diagnóstico do firmware permaneciam zerados —
+efeito, e os contadores de diagnóstico do firmware permaneciam zerados,
 inclusive o contador de eventos descartados por fila cheia e o de erro de
 transmissão. A ausência simultânea de eventos e de erros indicava que a máquina
 de estados de <em>debounce</em> jamais observara uma borda, ou seja, que o
@@ -1727,8 +2559,8 @@ dos botões, registrando simultaneamente a saída serial das duas unidades. O
 ensaio foi conduzido com o estágio de potência substituído por indicadores
 luminosos ligados diretamente a GPIO6 e GPIO7, de modo a tornar cada transição
 visualmente verificável sem envolver a carga do brinquedo. A grandeza medida é,
-portanto, o nível lógico do pino que comanda a base do transistor — exatamente o
-sinal de que Q1 e Q2 dependem —, e o ensaio valida a cadeia completa do botão até
+portanto, o nível lógico do pino que comanda a base do transistor, exatamente o
+sinal de que Q1 e Q2 dependem, e o ensaio valida a cadeia completa do botão até
 esse pino.</p>
 
 <figure class="tabela">
@@ -1758,13 +2590,13 @@ quadro deixou de ser enviado.</p>
 periodicamente, pela saída serial, tanto o número de eventos descartados por
 fila cheia quanto o número de posições livres na fila no momento do relato
 (<code>fila_livre</code>, na unidade receptora; <code>eventosPerdidos</code>,
-na emissora) — ver seção de arquitetura de tempo real. O valor mínimo de
+na emissora), ver seção de arquitetura de tempo real. O valor mínimo de
 posições livres efetivamente observado durante o ensaio funcional não foi
 registrado nos dados coletados; o dado disponível é o contador de eventos
 perdidos, que permaneceu em zero durante todo o ensaio. Como o acionamento
 manual dos botões opera em escala de centenas de milissegundos entre
-cliques — muito acima do período de amostragem de 5 ms e da rajada de
-15 ms × 3 —, é esperado que a fila de 16 posições jamais se aproxime da
+cliques, muito acima do período de amostragem de 5 ms e da rajada de
+15 ms × 3, é esperado que a fila de 16 posições jamais se aproxime da
 saturação nesse regime; um ensaio futuro que capture explicitamente
 <code>fila_livre</code> ao longo do tempo forneceria a profundidade máxima
 efetivamente atingida, em vez de apenas o resultado binário de saturação
@@ -1788,120 +2620,11 @@ entre o fim do repique mecânico e o acionamento do modo correspondente é,
 portanto, dominada pela janela de debounce, da ordem de algumas dezenas de
 milissegundos.</p>
 
-<h1>Limitações e trabalhos futuros</h1>
-
-<p>Esta seção reúne, em um único lugar, todos os pontos em que a montagem ou
-o firmware ainda não estão plenamente caracterizados, ou em que a solução
-adotada tem alcance deliberadamente restrito ao escopo do projeto —
-inclusive os já mencionados de passagem nas seções técnicas anteriores.</p>
-
-<p><strong>Caracterização elétrica da carga.</strong> A tensão e a corrente de
-alimentação do brinquedo não foram medidas. Os cálculos de dimensionamento do
-resistor de base e de dissipação em saturação apresentados nas seções
-correspondentes são, por isso, estimativas baseadas em valores plausíveis, e
-não verificações — assim identificados explicitamente onde aparecem. A margem
-de dimensionamento é ampla, e não depende da tensão de alimentação — a base
-sustenta cerca de 3,9 A de coletor contra as dezenas ou poucas centenas de
-miliampères esperadas de um brinquedo de pequeno porte —, mas a confirmação
-da tensão residual entregue à carga e da dissipação real do transistor
-depende dessas duas medidas, ainda pendentes.</p>
-
-<p><strong>Ausência de intertravamento em <em>hardware</em> entre os dois
-modos.</strong> Os ramos de saída são independentes por construção, e nada
-impede eletricamente que Q1 e Q2 conduzam simultaneamente; a decisão de
-permitir ou não essa combinação está inteiramente no protocolo de aplicação.
-Caso a inspeção do brinquedo revele que a combinação simultânea dos dois
-modos é indesejável, a restrição deverá ser imposta em firmware ou por um
-estágio lógico adicional.</p>
-
-<p><strong>Alcance do enlace não levantado quantitativamente.</strong> Os
-ensaios ocorreram em bancada, com as unidades a poucos metros uma da outra.
-O ensaio de radiofrequência relatado na seção de verificação isolou rádio de
-protocolo e foi decisivo para diagnosticar a falha de transmissão de uma das
-placas, mas não mediu RSSI nem taxa de perda de pacote em função da
-distância para o enlace ESP-NOW efetivamente usado pela aplicação. A
-distância máxima de operação confiável, em especial na presença de
-obstáculos, permanece por determinar; Urazayev <em>et al.</em> (2023) e
-demais referências citadas no referencial teórico oferecem valores de
-literatura para efeito de comparação, mas não substituem a medição direta
-deste enlace específico.</p>
-
-<p><strong>Latência e profundidade de fila estimadas, não medidas
-diretamente.</strong> Como detalhado na seção de verificação, a latência
-entre o acionamento do botão e a resposta do modo é uma estimativa por
-cálculo a partir dos parâmetros de projeto (janela de debounce, período de
-amostragem, literatura sobre o enlace), e a profundidade máxima de fila
-efetivamente atingida durante os ensaios não foi capturada — apenas o
-resultado binário de que nenhum evento foi perdido. O firmware já expõe os
-contadores necessários (<code>fila_livre</code>, <code>eventosPerdidos</code>)
-para que um ensaio futuro registre essas séries ao longo do tempo.</p>
-
-<p><strong>Recuperação de estado após reinicialização independente do
-receptor.</strong> O protocolo se recupera automaticamente de perda de
-quadro e de reinicialização da unidade <em>emissora</em>, por transmitir
-estado absoluto e por invalidar a sequência antiga a cada novo
-<code>bootId</code>. O caso simétrico — a unidade <em>receptora</em> reiniciar
-de forma independente, por exemplo por queda momentânea de sua própria
-alimentação — não tem mecanismo de correção ativo: não há
-<em>heartbeat</em> nem consulta periódica de estado, de modo que, após esse
-tipo de evento, o estado dos dois modos do brinquedo só volta a corresponder
-ao que o operador espera quando um botão for pressionado novamente. Como o
-estado de repouso de fábrica dos pinos de saída é sempre "desligado" (ver
-seção de circuito de saída), o pior caso é o brinquedo permanecer desligado
-até o próximo clique, nunca um acionamento espúrio — mas a divergência em si
-não é corrigida sozinha. Adicionar retransmissão periódica de estado pela
-unidade emissora, ou consulta de estado pela receptora ao reiniciar, é
-trabalho futuro natural.</p>
-
-<p><strong>Pareamento de chaves não escala além de duas unidades.</strong>
-Como discutido na seção de segurança, a geração de PMK/LMK é local e manual,
-e o esquema é 1 : 1 por construção. Um sistema com mais de uma unidade
-emissora ou receptora exigiria mecanismo de distribuição de chaves e,
-possivelmente, rotação periódica — nenhum dos dois está implementado, por
-não se justificar no escopo atual de duas placas fisicamente
-emparelhadas.</p>
-
-<p><strong>Cifragem de <em>flash</em> não habilitada.</strong> As chaves
-PMK/LMK residem em texto claro na memória <em>flash</em> de cada placa.
-Acesso físico a qualquer uma das unidades compromete o material
-criptográfico integral. Habilitar a cifragem de <em>flash</em> do ESP-IDF
-resolveria essa exposição, ao custo de migrar a compilação para fora do
-núcleo Arduino simplificado atualmente empregado.</p>
-
-<p><strong>Ausência de campo de versão no protocolo de aplicação.</strong> A
-estrutura <code>pacote_t</code> não reserva um campo de versão. Nada impede,
-hoje, que um firmware de uma geração futura, com layout de pacote diferente,
-seja gravado em uma das duas placas sem que a outra detecte a
-incompatibilidade — o quadro seria simplesmente interpretado com os
-<em>offsets</em> errados. Adicionar um campo de versão, verificado antes da
-deduplicação, é trabalho futuro de baixo custo.</p>
-
-<p><strong>Gestão de energia do firmware não explorada.</strong> Nem a
-unidade emissora nem a receptora empregam modos de baixo consumo do ESP32
-(<em>light sleep</em>, <em>duty cycling</em> da amostragem). Para um
-brinquedo presumivelmente alimentado por bateria, isso é relevante para a
-autonomia entre cargas e não foi avaliado neste trabalho.</p>
-
-<p><strong>Watchdog, condição de <em>brown-out</em> e dimensionamento de
-pilha das tarefas não discutidos.</strong> O projeto não configura
-explicitamente watchdog de aplicação nem examina o comportamento sob queda
-parcial de tensão de alimentação lógica, e o dimensionamento da pilha de
-cada tarefa FreeRTOS (parâmetro fixo na criação, ver arquitetura de tempo
-real) não foi validado por medição de uso de pico. Nenhuma falha relacionada
-foi observada nos ensaios realizados, mas a ausência de observação não
-equivale a garantia sob condições não testadas.</p>
-
-<p><strong>Validade interna dos ensaios.</strong> Os testes de host, o
-ensaio automatizado e os ensaios de bancada foram projetados, executados e
-interpretados pelo mesmo autor responsável pela implementação, sem revisão
-independente por terceiros. Isso é declarado explicitamente como limitação
-metodológica, não como uma falha de execução.</p>
-
 <h1>Considerações finais</h1>
 
 <p>Os objetivos específicos definidos na introdução foram alcançados dentro
 do escopo verificado experimentalmente. O estágio de potência foi
-dimensionado e validado quanto à margem de acionamento da base — a parte do
+dimensionado e validado quanto à margem de acionamento da base, a parte do
 dimensionamento que não depende da caracterização ainda pendente da carga. O
 protocolo de aplicação sobre o ESP-NOW mostrou-se tolerante a perda de
 quadro e a reinicialização da unidade emissora, por transmitir estado
@@ -1912,19 +2635,50 @@ limites dessa proteção delimitados com honestidade na seção de segurança. A
 separação entre lógica pura e chamadas de plataforma foi a decisão de
 projeto de maior retorno: viabilizou a bateria de 48 testes de execução
 imediata, e essa bateria sustentou, sem regressões, todas as correções
-aplicadas durante os ensaios de bancada — incluindo a substituição do
+aplicadas durante os ensaios de bancada, incluindo a substituição do
 mecanismo de leitura do endereço físico e a redefinição dos pinos de
 entrada.</p>
 
 <p>A arquitetura de tarefas, por sua vez, mostrou-se adequada ao requisito de
 não perder acionamentos durante a transmissão: os ensaios com acionamento
 manual não registraram evento perdido por fila cheia em nenhum momento. As
-limitações que permanecem — caracterização elétrica da carga, alcance
-quantitativo do enlace, recuperação de estado após reinicialização
-independente do receptor, entre as demais listadas na seção anterior — são
-delimitadas com a mesma precisão com que os resultados obtidos são
+limitações que permanecem, a medição da corrente de carga, o levantamento
+quantitativo do alcance do enlace e a recuperação de estado após
+reinicialização independente do receptor, são delimitadas no texto com a
+mesma precisão com que os resultados obtidos são
 relatados, de modo que o que falta verificar fique tão claro quanto o que já
 foi.</p>
+
+<h2>Sobre a revisão da topologia de alimentação</h2>
+
+<p>A revisão da alimentação da unidade receptora, descrita na seção
+correspondente, merece registro em separado porque a lição que ela deixa é de
+método, e não de eletrônica.</p>
+
+<p>Durante oito dias, o dimensionamento do projeto foi conduzido sobre um valor
+de corrente de carga que havia sido adotado como estimativa provisória, à espera
+de uma medição que era sistematicamente adiada por ser considerada simples. Esse
+valor provisório se propagou por três seções do relatório e passou a sustentar
+uma decisão de arquitetura, a de não empregar conversores comutados em ponto
+algum do projeto. Quando o brinquedo foi finalmente aberto e as cargas
+identificadas, um micromotor N20 e uma linha de LEDs, verificou-se que a
+estimativa estava cerca de uma ordem de grandeza acima do real, e a decisão
+apoiada nela precisou ser parcialmente revertida.</p>
+
+<p>Nenhum cálculo estava errado. O que estava errado era o estatuto atribuído a
+um número: uma estimativa provisória passou a ser tratada, pelo simples decurso
+do tempo, como se fosse um dado. O custo do adiamento superou largamente o custo
+da medição adiada. Registra-se a ocorrência porque a distinção explícita entre
+valor calculado, valor estimado e valor medido, adotada como convenção editorial
+neste relatório, nasceu justamente deste episódio.</p>
+
+<p>Uma segunda correção da mesma revisão tem natureza diferente e vale igual
+registro: a versão anterior afirmava que o diodo interno do TIP122 dispensaria o
+diodo de roda-livre discreto. A afirmação era incorreta, por um motivo de
+orientação do componente detalhado na seção de saída, e teria resultado em
+montagem sem proteção contra a sobretensão de desligamento do motor. Ambas as
+correções foram aplicadas, e a versão anterior foi preservada em arquivo, com os
+erros assinalados, em vez de descartada.</p>
 
 <h1 class="sem-numero">Referências</h1>
 
@@ -2028,3 +2782,169 @@ Disponível em: https://www.rfc-editor.org/info/rfc3610/. Acesso em: 7 ago.
 2026.</p>
 
 </div>
+
+<h1 class="sem-numero">Glossário</h1>
+
+<p class="sem-recuo">Reúne os termos técnicos empregados no texto, com definição
+acessível a quem não tem formação em eletrônica ou em programação. A ordem é
+alfabética. Os termos aparecem definidos também na primeira ocorrência de cada
+seção, de modo que a consulta a este glossário é auxiliar, e não obrigatória.</p>
+
+<dl class="glossario">
+
+<dt>Alta impedância</dt>
+<dd>Estado de um pino que não impõe nem tensão alta nem baixa, comportando-se
+como se estivesse desconectado. É o estado dos pinos de um microcontrolador logo
+após a energização, antes de o programa assumir o controle.</dd>
+
+<dt>Base, coletor e emissor</dt>
+<dd>Os três terminais de um transistor bipolar. A base é o terminal de comando,
+que recebe a corrente pequena; coletor e emissor formam o caminho por onde passa
+a corrente grande, controlada pela base.</dd>
+
+<dt>Beta forçado</dt>
+<dd>Razão entre a corrente de carga e a corrente de comando que o fabricante
+garante quando o transistor opera como chave, isto é, em saturação. Difere do
+ganho de amplificação, medido em outra condição de ensaio, e é o valor aplicável
+ao dimensionamento de um circuito de chaveamento.</dd>
+
+<dt>Capacitor</dt>
+<dd>Componente que armazena uma pequena quantidade de energia elétrica e a
+devolve rapidamente. Empregado para absorver variações bruscas de tensão e para
+desviar ruído de alta frequência para o terra.</dd>
+
+<dt>Conversor elevador (<em>boost</em>)</dt>
+<dd>Circuito que produz uma tensão de saída maior que a de entrada, à custa de
+corrente. Não cria energia: a potência de saída, mais as perdas, é retirada da
+entrada.</dd>
+
+<dt>Corrente, tensão e potência</dt>
+<dd>Tensão, medida em volts, é a diferença de potencial que impulsiona as cargas
+elétricas; corrente, medida em ampères, é a quantidade de carga que passa por
+segundo; potência, em watts, é o produto das duas e mede a energia consumida por
+unidade de tempo. A analogia hidráulica usual associa tensão à pressão, corrente
+à vazão e potência ao trabalho realizado pelo fluxo.</dd>
+
+<dt>Darlington</dt>
+<dd>Arranjo de dois transistores em cascata dentro de um mesmo encapsulamento, de
+modo que o ganho total seja o produto dos ganhos individuais. Permite comandar
+correntes elevadas com corrente de comando muito pequena, ao custo de uma queda
+de tensão maior quando conduzindo.</dd>
+
+<dt><em>Debounce</em></dt>
+<dd>Filtragem das transições espúrias que um contato mecânico produz nos
+milissegundos seguintes ao acionamento. Sem ela, um único toque de botão seria
+lido como vários.</dd>
+
+<dt>Diodo</dt>
+<dd>Componente que conduz corrente em um sentido e a bloqueia no sentido oposto.
+O terminal de entrada chama-se anodo e o de saída, catodo, este último
+identificado por uma faixa impressa no corpo do componente.</dd>
+
+<dt>Diodo de roda-livre</dt>
+<dd>Diodo instalado em paralelo com uma carga indutiva, como um motor, para
+oferecer caminho fechado à corrente no instante em que a alimentação é
+interrompida. Sem ele, a energia armazenada no campo magnético do motor produz
+uma sobretensão capaz de danificar o transistor de comando.</dd>
+
+<dt>ESP-NOW</dt>
+<dd>Protocolo de comunicação sem fio ponto a ponto desenvolvido pela fabricante
+dos microcontroladores ESP32. Opera na mesma faixa de rádio do Wi-Fi, porém sem
+exigir roteador ou rede intermediária.</dd>
+
+<dt><em>Firmware</em></dt>
+<dd>O programa que executa dentro do microcontrolador. Distingue-se de um
+programa de computador comum por ser gravado no próprio dispositivo e por
+controlar diretamente circuitos elétricos.</dd>
+
+<dt>FreeRTOS</dt>
+<dd>Sistema operacional de tempo real para microcontroladores. Permite dividir o
+programa em tarefas com prioridades distintas, garantindo que as mais críticas,
+como o atendimento ao rádio, não sejam atrasadas pelas demais.</dd>
+
+<dt>GPIO</dt>
+<dd>Sigla de <em>general purpose input/output</em>, pino de entrada e saída de
+propósito geral. É por esses pinos que o microcontrolador lê botões e comanda
+circuitos externos.</dd>
+
+<dt>Lado alto e lado baixo</dt>
+<dd>Indicam de que lado da carga o transistor de chaveamento é inserido. No lado
+baixo, o transistor fica entre a carga e o terra; no lado alto, entre a fonte e a
+carga. O lado baixo é mais simples de comandar a partir de um microcontrolador,
+pelas razões expostas na seção de saída.</dd>
+
+<dt>LDO, regulador de baixa queda</dt>
+<dd>Regulador de tensão que exige diferença pequena entre entrada e saída para
+manter a regulação. Essa diferença mínima, chamada queda mínima, não é constante:
+cresce com a corrente entregue.</dd>
+
+<dt>Lítio, célula de</dt>
+<dd>Bateria recarregável de alta densidade de energia. Exige circuito de carga
+dedicado, que respeite o perfil de corrente e tensão especificado pelo
+fabricante, e circuito de proteção contra descarga profunda e curto-circuito.</dd>
+
+<dt>N20, motor</dt>
+<dd>Designação comercial de uma família de micromotores de corrente contínua com
+escovas e caixa de redução, de dimensões reduzidas, comuns em brinquedos e
+pequenos mecanismos.</dd>
+
+<dt>NPN e PNP</dt>
+<dd>Os dois tipos de transistor bipolar, que diferem no sentido da corrente de
+comando e, em consequência, na posição em que podem ser instalados no circuito.
+O TIP122 empregado neste projeto é NPN.</dd>
+
+<dt>PWM, modulação por largura de pulso</dt>
+<dd>Técnica de controlar a potência entregue a uma carga ligando e desligando a
+alimentação muito rapidamente e variando a proporção entre os dois estados. Não
+é empregada neste projeto, o que permitiu a escolha de um diodo mais simples.</dd>
+
+<dt><em>Pull-up</em></dt>
+<dd>Resistor que mantém um pino de entrada em nível alto enquanto nada o puxa
+para baixo, evitando que a leitura fique indefinida quando o botão está solto.
+Neste projeto emprega-se o resistor já integrado ao microcontrolador.</dd>
+
+<dt>Regulador de tensão</dt>
+<dd>Circuito que entrega tensão de saída constante a partir de uma entrada
+variável. O tipo linear dissipa a diferença em calor; o tipo comutado a converte,
+com rendimento maior, porém gerando ruído elétrico.</dd>
+
+<dt>Resistência interna</dt>
+<dd>Oposição que a própria bateria oferece à passagem de corrente. É a razão pela
+qual a tensão nos terminais cai quando o consumo aumenta, e cresce à medida que a
+bateria se descarrega.</dd>
+
+<dt>Resistor</dt>
+<dd>Componente que limita a corrente que passa por um trecho do circuito. No
+circuito de saída, é o que impede que o pino do microcontrolador entregue mais
+corrente do que suporta.</dd>
+
+<dt>Rotor bloqueado</dt>
+<dd>Condição em que o eixo do motor é impedido de girar. Nela o motor deixa de
+gerar oposição ao próprio movimento e a corrente sobe ao valor máximo, limitado
+apenas pela resistência do enrolamento. É o pior caso de dimensionamento.</dd>
+
+<dt>Saturação e corte</dt>
+<dd>Os dois estados de um transistor usado como chave. Em saturação ele conduz
+com a menor queda possível, equivalendo a uma chave fechada; em corte, não
+conduz, equivalendo a uma chave aberta.</dd>
+
+<dt>Terra</dt>
+<dd>Referência elétrica comum do circuito, em relação à qual todas as tensões são
+medidas, e por onde retorna a corrente que sai da fonte. Não se confunde com o
+aterramento de instalações prediais.</dd>
+
+<dt>Terra em estrela</dt>
+<dd>Forma de distribuir o terra em que cada retorno é levado individualmente até
+um único ponto, em vez de encadeado aos demais. Evita que a corrente elevada de
+uma carga perturbe a referência de um circuito sensível.</dd>
+
+<dt>TO-220</dt>
+<dd>Formato de encapsulamento de componentes de potência, com três terminais e
+aba metálica para fixação e dissipação de calor. Nos transistores desta família a
+aba é eletricamente ligada ao terminal do coletor.</dd>
+
+<dt>Trilho de alimentação</dt>
+<dd>Condutor que distribui uma mesma tensão a vários pontos do circuito. Neste
+projeto há um único trilho de 5,5 V na unidade receptora.</dd>
+
+</dl>

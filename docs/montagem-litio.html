@@ -1,0 +1,966 @@
+<title>Montagem: 14500 + MT3608 + TIP122</title>
+<style>
+  :root {
+    --bg:      #f4f6f7;
+    --panel:   #ffffff;
+    --sunk:    #eef1f3;
+    --line:    #d9dfe4;
+    --text:    #161c21;
+    --muted:   #5c6873;
+    --pwr:     #c33a3a;
+    --gnd:     #6b7680;
+    --sig:     #9c5c12;
+    --in:      #1c6ba3;
+    --chg:     #1c7f4c;
+    --mono: "SF Mono", "JetBrains Mono", Consolas, Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:    #14181c;
+      --panel: #1c2228;
+      --sunk:  #171d22;
+      --line:  #2c343c;
+      --text:  #e4e8eb;
+      --muted: #8a96a1;
+      --pwr:   #e15a5a;
+      --gnd:   #7d8894;
+      --sig:   #e6a15a;
+      --in:    #5aa9e6;
+      --chg:   #5ac68a;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg:    #14181c;
+    --panel: #1c2228;
+    --sunk:  #171d22;
+    --line:  #2c343c;
+    --text:  #e4e8eb;
+    --muted: #8a96a1;
+    --pwr:   #e15a5a;
+    --gnd:   #7d8894;
+    --sig:   #e6a15a;
+    --in:    #5aa9e6;
+    --chg:   #5ac68a;
+  }
+
+  :root[data-theme="light"] {
+    --bg:    #f4f6f7;
+    --panel: #ffffff;
+    --sunk:  #eef1f3;
+    --line:  #d9dfe4;
+    --text:  #161c21;
+    --muted: #5c6873;
+    --pwr:   #c33a3a;
+    --gnd:   #6b7680;
+    --sig:   #9c5c12;
+    --in:    #1c6ba3;
+    --chg:   #1c7f4c;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    margin: 0;
+    padding: 40px 20px 80px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 940px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  header { display: flex; flex-direction: column; gap: 10px; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  h1 {
+    font-size: 27px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  header p {
+    margin: 0;
+    max-width: 66ch;
+    color: var(--muted);
+    font-size: 14.5px;
+  }
+
+  .note {
+    background: var(--sunk);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--pwr);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-size: 13.5px;
+  }
+  .note strong { color: var(--pwr); }
+  .note p { margin: 0; }
+  .note p + p { margin-top: 8px; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    font-size: 12.5px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .swatch {
+    width: 16px; height: 3px;
+    border-radius: 2px;
+    display: inline-block;
+    flex: none;
+  }
+
+  .block {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .block-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .stage {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 2px 7px;
+    flex: none;
+  }
+
+  h2 {
+    font-size: 16.5px;
+    font-weight: 620;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .block > p { margin: 0; font-size: 14px; max-width: 70ch; }
+  .block > p.dim { color: var(--muted); font-size: 13.5px; }
+
+  .fig {
+    background: var(--sunk);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px;
+    overflow-x: auto;
+  }
+  .fig svg { width: 100%; min-width: 460px; height: auto; display: block; }
+
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td {
+    text-align: left;
+    padding: 9px 12px 9px 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+  td.m { font-family: var(--mono); white-space: nowrap; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    background: var(--sunk);
+    border: 1px solid var(--line);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  ol.steps {
+    margin: 0; padding: 0;
+    list-style: none;
+    counter-reset: s;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  ol.steps li {
+    counter-increment: s;
+    display: grid;
+    grid-template-columns: 26px 1fr;
+    gap: 12px;
+    font-size: 14px;
+  }
+  ol.steps li::before {
+    content: counter(s);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+  }
+
+  /* Traços dos diagramas */
+  .w-pwr { stroke: var(--pwr); stroke-width: 2; fill: none; stroke-linecap: round; }
+  .w-gnd { stroke: var(--gnd); stroke-width: 2; fill: none; stroke-linecap: round; }
+  .w-sig { stroke: var(--sig); stroke-width: 2; fill: none; stroke-linecap: round; }
+  .w-in  { stroke: var(--in);  stroke-width: 2; fill: none; stroke-linecap: round; }
+  .w-chg { stroke: var(--chg); stroke-width: 2; fill: none; stroke-linecap: round; }
+  .box   { fill: var(--panel); stroke: var(--line); stroke-width: 1.4; }
+  .box-d { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 4 3; }
+  .lbl   { font-family: var(--mono); font-size: 12px; fill: var(--text); }
+  .lbl-c { font-family: var(--mono); font-size: 12px; fill: var(--text); text-anchor: middle; }
+  .sub   { font-family: var(--mono); font-size: 10px; fill: var(--muted); }
+  .sub-c { font-family: var(--mono); font-size: 10px; fill: var(--muted); text-anchor: middle; }
+  .sub-e { font-family: var(--mono); font-size: 10px; fill: var(--muted); text-anchor: end; }
+  .warn-t{ font-family: var(--mono); font-size: 10px; fill: var(--pwr); }
+  .dot-p { fill: var(--pwr); }
+  .dot-g { fill: var(--gnd); }
+  .dot-s { fill: var(--sig); }
+
+  footer {
+    color: var(--muted);
+    font-size: 12.5px;
+    border-top: 1px solid var(--line);
+    padding-top: 18px;
+  }
+  footer p { margin: 0 0 6px; }
+
+  @media (max-width: 640px) {
+    body { padding: 28px 14px 60px; }
+    h1 { font-size: 23px; }
+    .block { padding: 16px 15px 20px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Dino · PIBIC-CEUB · receptor</div>
+    <h1>Montagem da alimentação por lítio e do chaveamento por TIP122</h1>
+    <p>
+      Guia de leitura, não roteiro de bancada. Cada bloco isola uma parte do
+      circuito para você conferir a ligação antes de decidir a montagem física.
+      A carga real é um motor N20 mais uma linha de LEDs, e todos os
+      dimensionamentos abaixo partem disso.
+    </p>
+  </header>
+
+  <div class="note">
+    <p><strong>Duas medições ainda decidem detalhes.</strong> A marcação do
+    regulador da placa ESP32-C3, chip de 5 pinos perto do pino 5V, e se o retorno
+    dos LEDs e o do motor chegam separados até você. O segundo é o único que pode
+    invalidar o Bloco 2.</p>
+  </div>
+
+  <div class="legend">
+    <span><span class="swatch" style="background:var(--pwr)"></span>+5,5 V</span>
+    <span><span class="swatch" style="background:var(--gnd)"></span>GND</span>
+    <span><span class="swatch" style="background:var(--sig)"></span>saída GPIO</span>
+    <span><span class="swatch" style="background:var(--chg)"></span>carga USB</span>
+    <span>fios que se cruzam sem ponto não se ligam</span>
+    <span>seta saindo do emissor = NPN</span>
+  </div>
+
+  <!-- ══════════════ VISÃO GERAL ══════════════ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="stage">VISÃO GERAL</span>
+      <h2>A cadeia inteira, da célula às cargas</h2>
+    </div>
+    <p class="dim">
+      Quatro estágios em série e três consumidores no fim. A chave geral corta a
+      carga sem cortar o carregamento, porque fica depois do módulo de proteção.
+    </p>
+
+    <div class="fig">
+      <svg viewBox="0 0 880 250" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Diagrama em blocos: USB-C alimenta o TP4056, que carrega a célula 14500 e entrega por OUT para a chave geral, depois para o MT3608 em 5,5 volts, que alimenta o ESP32-C3, os LEDs e o motor N20">
+
+        <!-- USB -->
+        <rect class="box" x="14" y="96" width="74" height="42" rx="5"/>
+        <text class="lbl-c" x="51" y="122">USB-C</text>
+        <path class="w-chg" d="M88 117 H124"/>
+
+        <!-- célula -->
+        <rect class="box" x="124" y="20" width="132" height="42" rx="5"/>
+        <text class="lbl-c" x="190" y="40">14500</text>
+        <text class="sub-c" x="190" y="54">3,0 a 4,2 V · 800 mAh</text>
+        <path class="w-pwr" d="M190 62 V96"/>
+
+        <!-- TP4056 -->
+        <rect class="box" x="124" y="96" width="132" height="54" rx="5"/>
+        <text class="lbl-c" x="190" y="118">TP4056</text>
+        <text class="sub-c" x="190" y="133">com proteção</text>
+        <text class="sub-c" x="190" y="146">R_PROG 3 kΩ</text>
+        <path class="w-pwr" d="M256 117 H300"/>
+
+        <!-- chave -->
+        <rect class="box" x="300" y="96" width="112" height="42" rx="5"/>
+        <text class="lbl-c" x="356" y="113">chave geral</text>
+        <text class="sub-c" x="356" y="128">posição 1 = off</text>
+        <path class="w-pwr" d="M412 117 H456"/>
+
+        <!-- MT3608 -->
+        <rect class="box" x="456" y="90" width="128" height="54" rx="5"/>
+        <text class="lbl-c" x="520" y="112">MT3608</text>
+        <text class="sub-c" x="520" y="127">ajustar 5,5 V</text>
+        <text class="sub-c" x="520" y="139">sem carga</text>
+
+        <!-- barramento de saída -->
+        <path class="w-pwr" d="M584 117 H648"/>
+        <circle class="dot-p" cx="648" cy="117" r="3.5"/>
+        <path class="w-pwr" d="M648 117 V38 H716"/>
+        <path class="w-pwr" d="M648 117 H716"/>
+        <path class="w-pwr" d="M648 117 V196 H716"/>
+
+        <!-- consumidores -->
+        <rect class="box" x="716" y="18" width="150" height="40" rx="5"/>
+        <text class="lbl-c" x="791" y="35">ESP32-C3</text>
+        <text class="sub-c" x="791" y="49">pino 5V · ~84 mA</text>
+
+        <rect class="box" x="716" y="97" width="150" height="40" rx="5"/>
+        <text class="lbl-c" x="791" y="114">LEDs</text>
+        <text class="sub-c" x="791" y="128">via Q1 · linha 1</text>
+
+        <rect class="box" x="716" y="176" width="150" height="40" rx="5"/>
+        <text class="lbl-c" x="791" y="193">motor N20</text>
+        <text class="sub-c" x="791" y="207">via Q2 · linha 2</text>
+
+        <text class="sub" x="124" y="176">a proteção contra descarga excessiva age em OUT,</text>
+        <text class="sub" x="124" y="190">por isso a chave e o MT3608 ficam depois dela</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ══════════════ BLOCO 1 ══════════════ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="stage">BLOCO 1</span>
+      <h2>Célula, carregamento e elevação</h2>
+    </div>
+    <p>
+      O erro de ligação mais caro deste bloco é tirar a alimentação de
+      <code>B+ / B−</code> em vez de <code>OUT+ / OUT−</code>. Em B você contorna
+      o DW01A e a célula pode descer abaixo de 2,5 V, o que a danifica de forma
+      permanente.
+    </p>
+
+    <div class="fig">
+      <svg viewBox="0 0 880 400" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Esquema do bloco de alimentação: USB-C entra no TP4056, a célula 14500 liga em B mais e B menos, a saída OUT mais passa pela chave geral e vai ao MT3608 com capacitor de entrada de 100 microfarad e de saída de 220 microfarad">
+
+        <!-- célula -->
+        <rect class="box" x="150" y="28" width="190" height="46" rx="5"/>
+        <text class="lbl-c" x="245" y="48">célula 14500</text>
+        <text class="sub-c" x="245" y="63">abas soldáveis, nunca no corpo nu</text>
+        <text class="sub" x="196" y="90">+</text>
+        <text class="sub" x="280" y="90">−</text>
+        <path class="w-pwr" d="M215 74 V108"/>
+        <path class="w-gnd" d="M275 74 V108"/>
+
+        <!-- USB -->
+        <rect class="box" x="24" y="140" width="90" height="70" rx="5"/>
+        <text class="lbl-c" x="69" y="170">USB-C</text>
+        <text class="sub-c" x="69" y="185">5 V</text>
+        <path class="w-chg" d="M114 155 H150"/>
+        <path class="w-gnd" d="M114 195 H150"/>
+
+        <!-- TP4056 -->
+        <rect class="box" x="150" y="108" width="190" height="140" rx="6"/>
+        <text class="lbl-c" x="245" y="150">TP4056</text>
+        <text class="sub-c" x="245" y="166">+ DW01A + FS8205</text>
+        <text class="sub-c" x="245" y="184">6 pinos. A versão de</text>
+        <text class="sub-c" x="245" y="196">4 pinos não protege.</text>
+        <text class="warn-t" x="176" y="222">trocar R_PROG: 122 → 302</text>
+        <text class="sub-c" x="245" y="236">1,2 kΩ → 3 kΩ  (900 → 400 mA)</text>
+
+        <text class="sub" x="156" y="152">IN+</text>
+        <text class="sub" x="156" y="192">IN−</text>
+        <text class="sub-c" x="215" y="104">B+</text>
+        <text class="sub-c" x="275" y="104">B−</text>
+        <text class="sub-e" x="334" y="146">OUT+</text>
+        <text class="sub-e" x="334" y="206">OUT−</text>
+
+        <!-- saída OUT+ -->
+        <path class="w-pwr" d="M340 150 H400"/>
+
+        <!-- chave geral -->
+        <rect class="box" x="400" y="126" width="90" height="48" rx="5"/>
+        <text class="lbl-c" x="445" y="146">S1</text>
+        <text class="sub-c" x="445" y="161">chave geral</text>
+        <path class="w-pwr" d="M490 150 H560"/>
+        <circle class="dot-p" cx="520" cy="150" r="3.5"/>
+
+        <!-- Cin -->
+        <path class="w-pwr" d="M520 150 V222"/>
+        <path class="w-pwr" d="M506 222 H534"/>
+        <path class="w-gnd" d="M506 234 H534"/>
+        <path class="w-gnd" d="M520 234 V330"/>
+        <text class="sub" x="440" y="220">C_in</text>
+        <text class="sub" x="430" y="234">100 µF</text>
+
+        <!-- MT3608 -->
+        <rect class="box" x="560" y="108" width="180" height="140" rx="6"/>
+        <text class="lbl-c" x="650" y="152">MT3608</text>
+        <text class="warn-t" x="586" y="176">ajustar a 5,5 V</text>
+        <text class="sub-c" x="650" y="192">com a carga desligada,</text>
+        <text class="sub-c" x="650" y="206">antes de ligar qualquer coisa</text>
+        <text class="sub" x="566" y="146">VIN+</text>
+        <text class="sub" x="566" y="206">VIN−</text>
+        <text class="sub-e" x="734" y="146">VOUT+</text>
+        <text class="sub-e" x="734" y="206">VOUT−</text>
+
+        <path class="w-gnd" d="M560 210 H540 M540 210 V330"/>
+        <path class="w-gnd" d="M740 210 V330"/>
+
+        <!-- saída -->
+        <path class="w-pwr" d="M740 150 H852"/>
+        <circle class="dot-p" cx="790" cy="150" r="3.5"/>
+
+        <!-- Cout -->
+        <path class="w-pwr" d="M790 150 V222"/>
+        <path class="w-pwr" d="M776 222 H804"/>
+        <path class="w-gnd" d="M776 234 H804"/>
+        <path class="w-gnd" d="M790 234 V330"/>
+        <text class="sub" x="808" y="222">C_out</text>
+        <text class="sub" x="808" y="236">220 µF</text>
+
+        <!-- barra de terra -->
+        <path class="w-gnd" d="M340 210 H370 M370 210 V330 M370 330 H852"/>
+        <circle class="dot-g" cx="520" cy="330" r="3.5"/>
+        <circle class="dot-g" cx="540" cy="330" r="3.5"/>
+        <circle class="dot-g" cx="740" cy="330" r="3.5"/>
+        <circle class="dot-g" cx="790" cy="330" r="3.5"/>
+
+        <text class="lbl" x="782" y="140">+5,5 V</text>
+        <text class="lbl" x="794" y="322">GND</text>
+
+        <text class="sub" x="150" y="284">O C_out não é decoração: ele corta a sobretensão de saída</text>
+        <text class="sub" x="150" y="298">quando o N20 desliga, e é isso que protege o regulador da placa.</text>
+        <text class="sub" x="150" y="312">O C_in cobre os 2,2 A de transiente na partida do motor.</text>
+      </svg>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>De</th><th>Para</th><th>Observação</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="m">USB-C</td><td class="m">IN+ / IN−</td><td>Já vem soldado no módulo.</td></tr>
+          <tr><td class="m">B+ / B−</td><td class="m">célula 14500</td><td>Só a célula aqui. Nada de carga.</td></tr>
+          <tr><td class="m">OUT+</td><td class="m">S1</td><td>A chave corta a carga e deixa o carregamento funcionando.</td></tr>
+          <tr><td class="m">S1</td><td class="m">MT3608 VIN+</td><td>C_in de 100 µF neste nó, contra o GND.</td></tr>
+          <tr><td class="m">OUT−</td><td class="m">barra de GND</td><td>Este é o ponto estrela, ver Bloco 5.</td></tr>
+          <tr><td class="m">VOUT+</td><td class="m">trilho +5,5 V</td><td>C_out de 220 µF neste nó, contra o GND.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════ BLOCO 2 ══════════════ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="stage">BLOCO 2</span>
+      <h2>Chaveamento de lado baixo com os dois TIP122 NPN</h2>
+    </div>
+    <p>
+      A chave original do brinquedo é de lado alto: ela distribui o VCC para as
+      linhas de carga. O transistor <strong>não vai no lugar dela</strong>. Vai no
+      fio de retorno de cada carga, entre a carga e o GND.
+    </p>
+    <div class="note">
+      <p><strong>O TIP122 é um Darlington NPN, e é isso que obriga o lado
+      baixo.</strong> Um NPN conduz quando a base fica cerca de 1,4 V acima do
+      <em>emissor</em>, não acima do terra. No lado alto o emissor ficaria preso
+      à carga, perto de 5,5 V, e a base precisaria de aproximadamente 6,9 V:
+      um GPIO de 3,3 V nunca chega lá. Com o emissor amarrado ao GND, a base
+      precisa só dos mesmos 1,4 V, e os 3,3 V sobram.</p>
+      <p>O complementar PNP é o TIP127, que funcionaria no lado alto. Só que aí
+      o acionamento passa a ser referenciado ao +5,5 V e você precisaria de um
+      segundo transistor só para comandar a base a partir do GPIO. Com a carga
+      já tendo retorno acessível, não compensa.</p>
+    </div>
+
+    <div class="fig">
+      <svg viewBox="0 0 880 500" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Esquema do chaveamento: ESP32-C3 alimentado pelo trilho de 5,5 volts, GPIO6 e GPIO7 passam por resistores de 330 ohms até as bases de dois TIP122, os coletores vão às cargas e os emissores ao GND, com diodo 1N4007 em antiparalelo com o motor">
+
+        <!-- barramentos -->
+        <path class="w-pwr" d="M25 40 H855"/>
+        <path class="w-gnd" d="M25 440 H855"/>
+        <text class="lbl" x="25" y="28">+5,5 V</text>
+        <text class="lbl" x="25" y="462">GND</text>
+
+        <!-- ESP32 -->
+        <rect class="box" x="60" y="150" width="160" height="190" rx="6"/>
+        <text class="lbl-c" x="140" y="228">ESP32-C3</text>
+        <text class="sub-c" x="140" y="244">Super Mini</text>
+        <text class="sub-c" x="140" y="266">o LDO de bordo</text>
+        <text class="sub-c" x="140" y="278">faz 5,5 → 3,3 V</text>
+        <text class="sub-c" x="110" y="146">5V</text>
+        <text class="sub-c" x="170" y="356">GND</text>
+        <text class="sub" x="226" y="196">GPIO6</text>
+        <text class="sub" x="226" y="286">GPIO7</text>
+
+        <path class="w-pwr" d="M110 150 V40"/>
+        <circle class="dot-p" cx="110" cy="40" r="3.5"/>
+        <path class="w-gnd" d="M170 340 V440"/>
+        <circle class="dot-g" cx="170" cy="440" r="3.5"/>
+
+        <!-- 100nF do ESP32 -->
+        <circle class="dot-p" cx="110" cy="90" r="3.5"/>
+        <path class="w-pwr" d="M110 90 H40 M40 90 V244"/>
+        <path class="w-pwr" d="M26 244 H54"/>
+        <path class="w-gnd" d="M26 256 H54"/>
+        <path class="w-gnd" d="M40 256 V440"/>
+        <circle class="dot-g" cx="40" cy="440" r="3.5"/>
+        <text class="sub" x="46" y="292">100 nF</text>
+
+        <!-- ============ RAMO 1: LEDs ============ -->
+        <rect class="box" x="380" y="110" width="100" height="70" rx="5"/>
+        <text class="lbl-c" x="430" y="140">LEDs</text>
+        <text class="sub-c" x="430" y="156">linha 1</text>
+        <text class="sub-c" x="430" y="169">do brinquedo</text>
+        <path class="w-pwr" d="M430 110 V40"/>
+        <circle class="dot-p" cx="430" cy="40" r="3.5"/>
+        <path class="w-pwr" d="M430 180 V216"/>
+
+        <!-- Q1 -->
+        <circle cx="426" cy="250" r="32" fill="none" stroke="var(--line)" stroke-width="1.4"/>
+        <path class="w-sig" d="M420 236 V264"/>
+        <path class="w-sig" d="M396 250 H420"/>
+        <path class="w-pwr" d="M420 241 L430 228 M430 228 V216"/>
+        <path class="w-gnd" d="M420 259 L430 272 M430 272 V440"/>
+        <path d="M428.5 270 L420.8 266.5 L427.2 261.7 Z" fill="var(--gnd)" stroke="var(--gnd)" stroke-width="1"/>
+        <circle class="dot-g" cx="430" cy="440" r="3.5"/>
+        <text class="lbl" x="466" y="244">Q1</text>
+        <text class="sub" x="466" y="258">TIP122</text>
+        <text class="sub" x="466" y="270">NPN</text>
+        <text class="sub" x="466" y="282">Darlington</text>
+        <text class="sub-e" x="414" y="246">B</text>
+        <text class="sub" x="436" y="222">C</text>
+        <text class="sub" x="436" y="290">E</text>
+
+        <!-- base Q1 -->
+        <path class="w-sig" d="M220 200 H270 M270 200 V250 H340"/>
+        <rect x="340" y="242" width="38" height="16" rx="2" fill="var(--panel)" stroke="var(--sig)" stroke-width="1.6"/>
+        <path class="w-sig" d="M378 250 H396"/>
+        <text class="sub-c" x="359" y="234">330 Ω</text>
+
+        <!-- ============ RAMO 2: N20 ============ -->
+        <rect class="box" x="650" y="110" width="100" height="70" rx="5"/>
+        <text class="lbl-c" x="700" y="140">N20</text>
+        <text class="sub-c" x="700" y="156">linha 2</text>
+        <text class="sub-c" x="700" y="169">do brinquedo</text>
+        <path class="w-pwr" d="M700 110 V40"/>
+        <circle class="dot-p" cx="700" cy="40" r="3.5"/>
+        <path class="w-pwr" d="M700 180 V216"/>
+
+        <!-- Q2 -->
+        <circle cx="696" cy="250" r="32" fill="none" stroke="var(--line)" stroke-width="1.4"/>
+        <path class="w-sig" d="M690 236 V264"/>
+        <path class="w-sig" d="M666 250 H690"/>
+        <path class="w-pwr" d="M690 241 L700 228 M700 228 V216"/>
+        <path class="w-gnd" d="M690 259 L700 272 M700 272 V440"/>
+        <path d="M698.5 270 L690.8 266.5 L697.2 261.7 Z" fill="var(--gnd)" stroke="var(--gnd)" stroke-width="1"/>
+        <circle class="dot-g" cx="700" cy="440" r="3.5"/>
+        <text class="lbl" x="736" y="244">Q2</text>
+        <text class="sub" x="736" y="258">TIP122</text>
+        <text class="sub" x="736" y="270">NPN</text>
+        <text class="sub" x="736" y="282">Darlington</text>
+        <text class="sub-e" x="684" y="246">B</text>
+        <text class="sub" x="706" y="222">C</text>
+        <text class="sub" x="706" y="290">E</text>
+
+        <!-- base Q2, cruza o emissor de Q1 sem ligação -->
+        <path class="w-sig" d="M220 290 H250 M250 290 V370 H600 M600 370 V250 H630"/>
+        <rect x="630" y="242" width="38" height="16" rx="2" fill="var(--panel)" stroke="var(--sig)" stroke-width="1.6"/>
+        <text class="sub-c" x="649" y="234">330 Ω</text>
+
+        <!-- diodo de roda-livre -->
+        <circle class="dot-p" cx="700" cy="198" r="3.5"/>
+        <path class="w-pwr" d="M700 198 H800 M800 198 V132"/>
+        <path d="M788 130 L812 130 L800 108 Z" fill="none" stroke="var(--pwr)" stroke-width="2" stroke-linejoin="round"/>
+        <path class="w-pwr" d="M786 106 H814"/>
+        <path class="w-pwr" d="M800 106 V40"/>
+        <circle class="dot-p" cx="800" cy="40" r="3.5"/>
+        <text class="lbl" x="820" y="112">D1</text>
+        <text class="sub" x="820" y="126">1N4007</text>
+        <text class="sub" x="820" y="150">catodo</text>
+        <text class="sub" x="820" y="162">na faixa,</text>
+        <text class="sub" x="820" y="174">para cima</text>
+
+        <text class="sub" x="250" y="404">Só o N20 leva diodo. LEDs não são indutivos.</text>
+        <text class="sub" x="250" y="418">O cruzamento em (430, 370) não é ligação.</text>
+      </svg>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Sinal</th><th>Caminho</th><th>Valor</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="m">GPIO6</td><td>330 Ω, base de Q1, coletor nos LEDs, emissor no GND</td><td class="num">I_B ≈ 3,9 mA</td></tr>
+          <tr><td class="m">GPIO7</td><td>330 Ω, base de Q2, coletor no N20, emissor no GND</td><td class="num">I_B ≈ 3,9 mA</td></tr>
+          <tr><td class="m">D1</td><td>Antiparalelo com o N20. Anodo no coletor, catodo no +5,5 V</td><td class="num">1N4007</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="dim">
+      Sem pull-down externo na base. O TIP122 traz resistores internos entre base
+      e emissor que o seguram cortado enquanto o GPIO flutua no reset, e é
+      exatamente isso que um MOSFET não teria. GPIO6 e GPIO7 não são pinos de
+      strapping no C3, então o boot também não os força.
+    </p>
+  </section>
+
+  <!-- ══════════════ BLOCO 3 ══════════════ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="stage">BLOCO 3</span>
+      <h2>Supressão do ruído das escovas do N20</h2>
+    </div>
+    <p>
+      Este bloco não estava no documento de decisões e devia estar. Um motor de
+      escovas gera interferência de banda larga, e você tem um rádio de 2,4 GHz
+      no mesmo trilho e a poucos centímetros. Três cerâmicos de 100 nF nos
+      terminais resolvem o grosso, e custam centavos.
+    </p>
+
+    <div class="fig">
+      <svg viewBox="0 0 520 330" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Detalhe do motor N20 com três capacitores de 100 nanofarad: um entre os dois terminais e um de cada terminal para a carcaça, que vai ao GND">
+
+        <circle cx="260" cy="150" r="52" class="box"/>
+        <text class="lbl-c" x="260" y="146">M</text>
+        <text class="sub-c" x="260" y="164">N20</text>
+        <rect class="box-d" x="176" y="74" width="168" height="152" rx="8"/>
+        <text class="sub-c" x="260" y="92">carcaça</text>
+
+        <!-- terminais -->
+        <path class="w-pwr" d="M208 150 H100"/>
+        <path class="w-gnd" d="M312 150 H420"/>
+        <text class="sub" x="96" y="138">ao +5,5 V</text>
+        <text class="sub" x="352" y="138">ao coletor de Q2</text>
+
+        <!-- C1 entre terminais -->
+        <circle class="dot-p" cx="150" cy="150" r="3.5"/>
+        <circle class="dot-g" cx="370" cy="150" r="3.5"/>
+        <path class="w-pwr" d="M150 150 V44 H254"/>
+        <path class="w-gnd" d="M370 150 V44 H266"/>
+        <path class="w-pwr" d="M254 32 V56"/>
+        <path class="w-gnd" d="M266 32 V56"/>
+        <text class="sub-c" x="260" y="22">C1 · 100 nF</text>
+
+        <!-- C2 e C3 à carcaça -->
+        <circle class="dot-p" cx="118" cy="150" r="3.5"/>
+        <path class="w-pwr" d="M118 150 V214"/>
+        <path class="w-pwr" d="M104 214 H132"/>
+        <path class="w-gnd" d="M104 226 H132"/>
+        <path class="w-gnd" d="M118 226 V276 H260"/>
+        <text class="sub-c" x="118" y="292">C2</text>
+
+        <circle class="dot-g" cx="402" cy="150" r="3.5"/>
+        <path class="w-gnd" d="M402 150 V214"/>
+        <path class="w-gnd" d="M388 214 H416"/>
+        <path class="w-gnd" d="M388 226 H416"/>
+        <path class="w-gnd" d="M402 226 V276 H260"/>
+        <text class="sub-c" x="402" y="292">C3</text>
+
+        <!-- carcaça ao nó -->
+        <path class="w-gnd" d="M260 226 V276"/>
+        <circle class="dot-g" cx="260" cy="276" r="3.5"/>
+        <path class="w-gnd" d="M260 276 V300"/>
+        <path class="w-gnd" d="M240 300 H280 M247 308 H273 M254 316 H266"/>
+      </svg>
+    </div>
+
+    <p class="dim">
+      C1 vai entre os dois terminais. C2 e C3 vão de cada terminal à carcaça, e a
+      carcaça recebe um fio curto até o GND. Se o corpo do motor for inacessível,
+      montar só o C1 já pega a maior parte do ruído diferencial.
+    </p>
+  </section>
+
+  <!-- ══════════════ BLOCO 4 ══════════════ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="stage">BLOCO 4</span>
+      <h2>O que fazer com a chave original de quatro estágios</h2>
+    </div>
+    <p>
+      Ela deixa de escolher modos, porque quem escolhe agora é o firmware, e vira
+      a chave geral que o projeto precisava de qualquer jeito. Custo zero, sem
+      furar a carcaça, e mantém o controle original do brinquedo funcionando.
+    </p>
+
+    <div class="fig">
+      <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Comparação da chave de quatro estágios antes e depois: antes o comum distribui VCC para as linhas de LEDs e motor, depois as posições 2, 3 e 4 são unidas em um único fio para o MT3608">
+
+        <text class="lbl" x="20" y="24">ANTES</text>
+        <text class="sub" x="20" y="40">a chave escolhe o modo</text>
+
+        <path class="w-pwr" d="M20 110 H70"/>
+        <text class="sub" x="20" y="102">VCC (fio vermelho)</text>
+        <circle class="dot-p" cx="70" cy="110" r="4"/>
+        <path class="w-pwr" d="M70 110 L128 74"/>
+
+        <circle cx="140" cy="70"  r="5" fill="none" stroke="var(--muted)" stroke-width="1.6"/>
+        <circle cx="140" cy="110" r="5" fill="none" stroke="var(--muted)" stroke-width="1.6"/>
+        <circle cx="140" cy="150" r="5" fill="none" stroke="var(--muted)" stroke-width="1.6"/>
+        <circle cx="140" cy="190" r="5" fill="none" stroke="var(--muted)" stroke-width="1.6"/>
+
+        <text class="sub" x="156" y="74">1 · nada</text>
+        <text class="sub" x="156" y="114">2 · VCC sem carga identificada</text>
+        <text class="sub" x="156" y="154">3 · linha LEDs</text>
+        <text class="sub" x="156" y="194">4 · linha LEDs + linha motor</text>
+
+        <path class="w-pwr" d="M145 150 H300 M145 190 H300"/>
+        <rect class="box" x="300" y="132" width="96" height="36" rx="4"/>
+        <text class="lbl-c" x="348" y="155">LEDs</text>
+        <rect class="box" x="300" y="172" width="96" height="36" rx="4"/>
+        <text class="lbl-c" x="348" y="195">N20</text>
+        <text class="warn-t" x="20" y="242">a posição 2 precisa ser conferida</text>
+        <text class="sub" x="20" y="258">antes de soldar qualquer coisa</text>
+
+        <line x1="440" y1="16" x2="440" y2="284" stroke="var(--line)" stroke-width="1"/>
+
+        <text class="lbl" x="480" y="24">DEPOIS</text>
+        <text class="sub" x="480" y="40">a chave só liga e desliga</text>
+
+        <path class="w-pwr" d="M480 110 H530"/>
+        <text class="sub" x="480" y="102">OUT+ do TP4056</text>
+        <circle class="dot-p" cx="530" cy="110" r="4"/>
+        <path class="w-pwr" d="M530 110 L588 150"/>
+
+        <circle cx="600" cy="70"  r="5" fill="none" stroke="var(--muted)" stroke-width="1.6"/>
+        <circle cx="600" cy="110" r="5" fill="var(--pwr)" stroke="var(--pwr)" stroke-width="1.6"/>
+        <circle cx="600" cy="150" r="5" fill="var(--pwr)" stroke="var(--pwr)" stroke-width="1.6"/>
+        <circle cx="600" cy="190" r="5" fill="var(--pwr)" stroke="var(--pwr)" stroke-width="1.6"/>
+
+        <text class="sub" x="616" y="74">1 · desligado</text>
+        <text class="sub" x="616" y="114">2</text>
+        <text class="sub" x="616" y="154">3   os três unidos com</text>
+        <text class="sub" x="616" y="194">4   um pingo de solda</text>
+
+        <path class="w-pwr" d="M600 110 V190"/>
+        <path class="w-pwr" d="M600 150 H700 M700 150 H760"/>
+        <rect class="box" x="760" y="132" width="104" height="36" rx="4"/>
+        <text class="lbl-c" x="812" y="155">MT3608</text>
+
+        <text class="sub" x="480" y="242">as linhas dos LEDs e do motor saem da chave</text>
+        <text class="sub" x="480" y="258">e passam a terminar nos coletores de Q1 e Q2</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ══════════════ BLOCO 5 ══════════════ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="stage">BLOCO 5</span>
+      <h2>Terra em estrela</h2>
+    </div>
+    <p>
+      Aqui está a falha que não aparece no esquema e só aparece no comportamento.
+      Se o retorno do motor dividir um pedaço de fio com o retorno do ESP32, a
+      corrente do N20 cria uma tensão sobre a resistência desse fio, e a placa lê
+      isso como o terra dela oscilando. O sintoma é reinicialização ou pacote
+      perdido toda vez que o motor parte.
+    </p>
+
+    <div class="fig">
+      <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Comparação do terra: à esquerda, três fios saindo de um ponto estrela único no OUT menos do TP4056; à direita, o mesmo terra em cascata, marcado como errado">
+
+        <text class="lbl" x="20" y="24">CERTO</text>
+        <text class="sub" x="20" y="40">três fios, um ponto</text>
+
+        <circle class="dot-g" cx="90" cy="150" r="7"/>
+        <text class="sub" x="20" y="180">OUT− do</text>
+        <text class="sub" x="20" y="193">TP4056</text>
+
+        <path class="w-gnd" d="M90 150 L210 70"/>
+        <path class="w-gnd" d="M90 150 H210"/>
+        <path class="w-gnd" d="M90 150 L210 230"/>
+
+        <rect class="box" x="210" y="52" width="164" height="36" rx="4"/>
+        <text class="lbl-c" x="292" y="75">MT3608 GND</text>
+        <rect class="box" x="210" y="132" width="164" height="36" rx="4"/>
+        <text class="lbl-c" x="292" y="155">ESP32 GND</text>
+        <rect class="box" x="210" y="212" width="164" height="36" rx="4"/>
+        <text class="lbl-c" x="292" y="230">emissores Q1 Q2</text>
+        <text class="sub-c" x="292" y="264">é este que carrega</text>
+        <text class="sub-c" x="292" y="277">a corrente do motor</text>
+
+        <line x1="440" y1="16" x2="440" y2="284" stroke="var(--line)" stroke-width="1"/>
+
+        <text class="lbl" x="480" y="24">ERRADO</text>
+        <text class="sub" x="480" y="40">um fio, três paradas</text>
+
+        <circle class="dot-g" cx="530" cy="150" r="7"/>
+        <path class="w-gnd" d="M530 150 H600"/>
+        <rect class="box" x="600" y="132" width="90" height="36" rx="4"/>
+        <text class="lbl-c" x="645" y="155">Q1 Q2</text>
+        <path class="w-gnd" d="M690 150 H730"/>
+        <rect class="box" x="730" y="132" width="118" height="36" rx="4"/>
+        <text class="lbl-c" x="789" y="155">ESP32</text>
+
+        <path d="M646 92 L646 118 M634 105 L658 105" stroke="var(--pwr)" stroke-width="2.4" stroke-linecap="round" transform="rotate(45 646 105)"/>
+        <text class="warn-t" x="596" y="206">a queda sobre este trecho</text>
+        <text class="warn-t" x="596" y="220">entra direto no terra da placa</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ══════════════ LISTA ══════════════ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="stage">LISTA</span>
+      <h2>O que comprar, o que já tem, o que sai</h2>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Ref</th><th>Item</th><th>Especificação</th><th>Qtd</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="m">BT1</td><td>Célula de lítio</td><td>14500, 800 mAh, com abas soldáveis ou suporte</td><td class="num">1</td></tr>
+          <tr><td class="m">M1</td><td>Módulo de carga com proteção</td><td>TP4056 + DW01A + FS8205, 6 pinos, USB-C</td><td class="num">1</td></tr>
+          <tr><td class="m">R_PROG</td><td>Resistor SMD 1206</td><td>3 kΩ, substitui o <code>122</code> de fábrica</td><td class="num">1</td></tr>
+          <tr><td class="m">M2</td><td>Elevador</td><td>MT3608, ajustado a 5,5 V sem carga</td><td class="num">1</td></tr>
+          <tr><td class="m">C_out</td><td>Eletrolítico</td><td>220 µF / 10 V, na saída do MT3608</td><td class="num">1</td></tr>
+          <tr><td class="m">C_in</td><td>Eletrolítico</td><td>100 µF / 10 V, na entrada do MT3608</td><td class="num">1</td></tr>
+          <tr><td class="m">C1 C2 C3</td><td>Cerâmico</td><td>100 nF, nos terminais do N20</td><td class="num">3</td></tr>
+          <tr><td class="m">C4</td><td>Cerâmico</td><td>100 nF, na alimentação da placa</td><td class="num">1</td></tr>
+          <tr><td class="m">D1</td><td>Diodo de roda-livre</td><td>1N4007, antiparalelo com o N20</td><td class="num">1</td></tr>
+          <tr><td class="m">Fio</td><td>Flexível</td><td>22 AWG, duas cores</td><td class="num">1 m</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="dim">
+      <strong>Já em mãos:</strong> os dois TIP122 e os resistores de base de
+      330 Ω. <strong>Sai do projeto:</strong> as baterias A23, o L7805CV, os
+      capacitores de 330 nF e as três pilhas AA. <strong>Custo zero:</strong> a
+      chave geral, que é a própria chave de quatro estágios rebobinada.
+    </p>
+  </section>
+
+  <!-- ══════════════ NÚMEROS ══════════════ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="stage">NÚMEROS</span>
+      <h2>Por que estes valores</h2>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Escolha</th><th>Razão</th><th>Conta</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="m">5,5 V</td>
+            <td>Compensa a queda de saturação do Darlington e devolve ao motor a tensão de projeto do brinquedo</td>
+            <td class="num">5,5 − 1,0 = 4,5 V</td>
+          </tr>
+          <tr>
+            <td class="m">330 Ω</td>
+            <td>Corrente de base suficiente para a carga real, com beta forçado de 250 em saturação</td>
+            <td class="num">3,9 mA × 250 = 0,98 A</td>
+          </tr>
+          <tr>
+            <td class="m">3 kΩ</td>
+            <td>Carrega a 14500 a 0,5 C em vez de 1,1 C, e derruba a dissipação do TP4056 num compartimento fechado</td>
+            <td class="num">1100 / 0,4 = 2,75 kΩ</td>
+          </tr>
+          <tr>
+            <td class="m">MT3608</td>
+            <td>Entrada exigida no pior caso, com a partida do motor e a célula na reserva</td>
+            <td class="num">2,2 A de 4 A</td>
+          </tr>
+          <tr>
+            <td class="m">1N4007</td>
+            <td>O firmware usa <code>digitalWrite</code>, sem PWM, então a recuperação reversa de 2 µs não pesa</td>
+            <td class="num">1 A / 1000 V</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="dim">
+      O elevador custa cerca de 11 % de autonomia frente à célula ligada direto no
+      pino 5V, e em troca destrava o fundo da descarga: sem ele o LDO da placa
+      para de regular por volta de 3,7 V, que é justamente o patamar nominal da
+      célula, e você usaria só a parte de cima da carga.
+    </p>
+  </section>
+
+  <!-- ══════════════ ORDEM ══════════════ -->
+  <section class="block">
+    <div class="block-head">
+      <span class="stage">ORDEM</span>
+      <h2>Se e quando for montar</h2>
+    </div>
+    <ol class="steps">
+      <li>Confira a marcação do regulador da placa C3 e o retorno dos LEDs. As duas coisas antes de comprar.</li>
+      <li>Troque o R_PROG do TP4056 pelo de 3 kΩ, com o módulo ainda solto na bancada.</li>
+      <li>Ajuste o MT3608 para 5,5 V com o multímetro na saída e nada ligado nela. O potenciômetro é multivoltas e passa fácil.</li>
+      <li>Monte só a cadeia de alimentação, do Bloco 1, e confirme os 5,5 V estáveis com a chave nas quatro posições.</li>
+      <li>Ligue a placa ESP32-C3 sozinha no trilho e confirme que ela sobe e conversa por rádio.</li>
+      <li>Acrescente Q1 e os LEDs. Depois Q2, o N20 e o D1. Um ramo por vez.</li>
+      <li>Por último os cerâmicos do motor, e refaça o teste de rádio com o N20 girando.</li>
+    </ol>
+    <div class="note">
+      <p><strong>Rotina permanente:</strong> desligue a chave antes de plugar o
+      USB na placa para gravar. Sem isso os 5,5 V do MT3608 encontram os 5 V do
+      USB no mesmo nó, e nem toda placa C3 Super Mini tem Schottky no VBUS para
+      separar os dois.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Companheiro de <code>docs/alimentacao-e-chaveamento.md</code> e de <code>esquematico.html</code>. Reflete a topologia de 28/08/2026.</p>
+    <p>Correntes de partida e de regime do N20 ainda não medidas. Os números do MT3608 partem de estimativa de catálogo para o porte do motor.</p>
+  </footer>
+
+</div>

@@ -245,6 +245,22 @@ class Conversor:
         self.runs(par, no, tam=10)
         return par
 
+    def nivel_de_topico(self, par, nivel):
+        """Marca o nivel de topico do paragrafo (w:outlineLvl).
+
+        O campo TOC do Word coleta paragrafos pelo nivel de topico efetivo, e
+        nao apenas pelos estilos "Titulo N" embutidos. Como os titulos aqui
+        usam o estilo Normal com formatacao direta, para preservar o padrao
+        ABNT, e este atributo que os torna visiveis ao sumario. Sem ele o
+        campo e coletado vazio.
+        """
+        ppr = par._p.get_or_add_pPr()
+        el = ppr.find(qn("w:outlineLvl"))
+        if el is None:
+            el = OxmlElement("w:outlineLvl")
+            ppr.append(el)
+        el.set(qn("w:val"), str(nivel - 1))
+
     def titulo(self, no):
         nivel = int(no.tag[1])
         par = self.doc.add_paragraph()
@@ -281,6 +297,11 @@ class Conversor:
             r.italic = True
             fonte(r, SERIF, 12)
             self.runs(par, no, italic=True)
+
+        # Resumo e o proprio Sumario sao elementos pre-textuais e nao se
+        # listam no sumario (NBR 6027); Referencias, pos-textual, sim.
+        if not no.tem("fora-do-sumario"):
+            self.nivel_de_topico(par, nivel)
         return par
 
     def lista(self, no, ordenada=False):
@@ -297,6 +318,26 @@ class Conversor:
             r = par.add_run(marca)
             fonte(r, SERIF, 12)
             self.runs(par, li)
+
+    def glossario(self, no):
+        # <dl>: o termo (dt) vira paragrafo em negrito sem recuo, e a definicao
+        # (dd) vem logo abaixo com recuo de 1,25 cm. Verbete nao e lista
+        # numerada nem item de bullet, por isso nao reaproveita self.lista.
+        for f in no.filhos:
+            if not isinstance(f, No) or f.tag not in ("dt", "dd"):
+                continue
+            par = self.doc.add_paragraph()
+            pf = par.paragraph_format
+            pf.line_spacing = 1.5
+            pf.space_after = Pt(0)
+            pf.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            if f.tag == "dt":
+                pf.space_before = Pt(8)
+                pf.keep_with_next = True
+                self.runs(par, f, bold=True)
+            else:
+                pf.left_indent = Cm(1.25)
+                self.runs(par, f)
 
     # ---- figuras, quadros, tabelas ----
 
@@ -462,10 +503,12 @@ class Conversor:
         r_instr._r.append(instr)
         fld_char("separate")
         r_aviso = par.add_run(
-            "Sumário gerado automaticamente — no Word ou LibreOffice, clique "
-            "com o botão direito sobre esta área e escolha “Atualizar "
-            "campo” (ou selecione tudo e pressione F9) para preencher "
-            "os títulos e números de página.")
+            "Campo de sumário ainda não calculado. O Word e o LibreOffice "
+            "atualizam este campo sozinhos ao abrir o arquivo, bastando "
+            "confirmar a atualização quando perguntado. Se a pergunta for "
+            "recusada, clique com o botão direito sobre esta área e escolha "
+            "“Atualizar campo”, ou selecione tudo e pressione F9, para "
+            "preencher os títulos e os números de página.")
         r_aviso.italic = True
         fonte(r_aviso, SERIF, 11)
         fld_char("end")
@@ -530,6 +573,8 @@ class Conversor:
                     self.p_corpo(f)
             elif t in ("ul", "ol"):
                 self.lista(f, ordenada=(t == "ol"))
+            elif t == "dl":
+                self.glossario(f)
             elif t == "figure":
                 self.bloco_figura(f)
             elif t in ("style", "title", "meta", "script"):
